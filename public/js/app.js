@@ -3,22 +3,33 @@ const App = {
   currentSessionId: null,
 
   async init() {
-    Auth.init();
-    Sessions.init();
-    FileManager.init();
-    Editor.init();
-    Terminal.init();
-    this.initResizeHandles();
+    try {
+      Auth.init();
+      Sessions.init();
+      FileManager.init();
+      Editor.init();
 
-    document.getElementById('back-to-sessions').addEventListener('click', () => this.closeSession());
-    document.getElementById('ws-logout-btn').addEventListener('click', () => Auth.logout());
+      // Terminal init is optional - depends on CDN xterm loading
+      if (typeof BTerminal !== 'undefined' && BTerminal.init) {
+        try { BTerminal.init(); } catch (e) { console.warn('Terminal init failed:', e); }
+      }
 
-    // Check auth status
-    const status = await Auth.checkStatus();
-    if (status.user) {
-      this.currentUser = status.user;
-      this.showView('sessions');
-    } else {
+      this.initResizeHandles();
+
+      document.getElementById('back-to-sessions').addEventListener('click', () => this.closeSession());
+      document.getElementById('ws-logout-btn').addEventListener('click', () => Auth.logout());
+
+      // Check auth status
+      const status = await Auth.checkStatus();
+      if (status.user) {
+        this.currentUser = status.user;
+        this.showView('sessions');
+      } else {
+        this.showView('auth');
+      }
+    } catch (err) {
+      console.error('Bpanel init error:', err);
+      // Fallback: show auth view
       this.showView('auth');
     }
   },
@@ -53,7 +64,7 @@ const App = {
   },
 
   closeSession() {
-    Terminal.destroy();
+    try { BTerminal.destroy(); } catch {}
     Editor.closeAll();
     this.currentSessionId = null;
     this.showView('sessions');
@@ -101,14 +112,14 @@ const App = {
       const rect = mainArea.getBoundingClientRect();
       const height = Math.max(100, Math.min(rect.height - 100, rect.bottom - e.clientY));
       termArea.style.height = height + 'px';
-      Terminal.fit();
+      try { BTerminal.fit(); } catch {}
     });
 
     document.addEventListener('mouseup', () => {
       if (draggingH) {
         draggingH = false;
         handleH.classList.remove('active');
-        Terminal.fit();
+        try { BTerminal.fit(); } catch {}
       }
     });
   },

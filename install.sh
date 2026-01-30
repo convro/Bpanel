@@ -63,6 +63,13 @@ install_node() {
   log "Installing Node.js 20.x..."
   apt-get update -qq
   apt-get install -y -qq curl ca-certificates gnupg
+
+  # Remove conflicting Ubuntu nodejs/libnode packages first
+  log "Removing old Node.js packages..."
+  apt-get remove -y -qq nodejs libnode-dev libnode72 nodejs-doc npm 2>/dev/null || true
+  apt-get autoremove -y -qq 2>/dev/null || true
+  dpkg --configure -a 2>/dev/null || true
+
   mkdir -p /etc/apt/keyrings
   curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg 2>/dev/null
   echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
@@ -155,3 +162,4 @@ install_deps
 install_bpanel
 setup_service
 finish
+

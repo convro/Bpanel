@@ -1,4 +1,6 @@
 const Domains = {
+  editingDomain: null,
+
   init() {
     document.getElementById('add-domain-btn').addEventListener('click', () => this.showModal());
     document.getElementById('cancel-domain').addEventListener('click', () => this.hideModal());
@@ -25,13 +27,10 @@ const Domains = {
     try {
       const domains = await API.get('/api/domains');
       this.render(domains);
-
-      // Also load server IP
       try {
         const sys = await API.get('/api/system/info');
         const ip = document.getElementById('server-ip-display');
         if (ip) ip.innerHTML = `<strong>${sys.hostname}</strong>`;
-        // Try to get public IP from hostname
       } catch {}
     } catch (err) {
       document.getElementById('domains-list').innerHTML = `<div class="info-box" style="border-color:var(--warning)"><p>Could not load domains. Is Nginx installed? <code>apt install nginx</code></p></div>`;
@@ -46,7 +45,7 @@ const Domains = {
     }
 
     container.innerHTML = domains.map(d => `
-      <div class="domain-card">
+      <div class="domain-card" data-file="${this.esc(d.file)}">
         <div class="domain-info">
           <div class="domain-name">
             <i data-lucide="${d.hasSSL ? 'lock' : 'globe'}" class="icon-sm" style="color:${d.hasSSL ? 'var(--success)' : 'var(--text-muted)'}"></i>
@@ -57,6 +56,7 @@ const Domains = {
           ${d.root ? `<div class="domain-detail"><i data-lucide="folder" class="icon-xs"></i> ${this.esc(d.root)}</div>` : ''}
         </div>
         <div class="domain-actions">
+          <button class="btn btn-sm edit-vhost" data-name="${this.esc(d.file)}" title="Edit vhost config"><i data-lucide="file-edit" class="icon-xs"></i> Config</button>
           <button class="btn btn-sm toggle-domain" data-name="${this.esc(d.file)}">${d.enabled ? 'Disable' : 'Enable'}</button>
           <button class="btn btn-sm btn-danger delete-domain" data-name="${this.esc(d.file)}"><i data-lucide="trash-2" class="icon-xs"></i></button>
         </div>
@@ -64,6 +64,13 @@ const Domains = {
     `).join('');
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    container.querySelectorAll('.edit-vhost').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openConfigEditor(btn.dataset.name);
+      });
+    });
 
     container.querySelectorAll('.toggle-domain').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -83,6 +90,107 @@ const Domains = {
         } catch (err) { alert(err.message); }
       });
     });
+  },
+
+  async openConfigEditor(name) {
+    this.editingDomain = name;
+    try {
+      const data = await API.get(`/api/domains/${name}/config`);
+      this.showConfigModal(name, data.content);
+    } catch (err) {
+      alert('Failed to load config: ' + err.message);
+    }
+  },
+
+  showConfigModal(name, content) {
+    document.querySelectorAll('.vhost-editor-modal').forEach(el => el.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'modal vhost-editor-modal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:700px;max-height:80vh;display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="display:flex;align-items:center;gap:8px"><i data-lucide="file-cog" class="icon-sm"></i> ${this.esc(name)} - Nginx Config</h3>
+          <button class="btn btn-sm close-vhost-editor"><i data-lucide="x" class="icon-xs"></i></button>
+        </div>
+        <div id="vhost-test-result" style="display:none;margin-bottom:12px"></div>
+        <textarea id="vhost-editor-textarea" spellcheck="false" autocomplete="off" autocorrect="off" style="
+          flex:1;min-height:300px;width:100%;
+          background:var(--bg-primary);color:var(--text-primary);
+          border:1px solid var(--border);border-radius:var(--radius);
+          padding:12px 16px;font-family:var(--font-mono);font-size:13px;
+          line-height:1.6;resize:none;outline:none;tab-size:2;white-space:pre;
+        ">${this.esc(content)}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <span id="vhost-save-status" style="font-size:12px;color:var(--text-muted)"></span>
+          <div style="display:flex;gap:8px">
+            <button class="btn close-vhost-editor">Cancel</button>
+            <button class="btn btn-primary" id="save-vhost-btn"><i data-lucide="save" class="icon-xs"></i> Save & Test</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const ta = document.getElementById('vhost-editor-textarea');
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = ta.selectionStart, end = ta.selectionEnd;
+        ta.value = ta.value.substring(0, s) + '    ' + ta.value.substring(end);
+        ta.selectionStart = ta.selectionEnd = s + 4;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        this.saveConfig(name);
+      }
+    });
+
+    modal.querySelectorAll('.close-vhost-editor').forEach(el => {
+      el.addEventListener('click', () => modal.remove());
+    });
+    document.getElementById('save-vhost-btn').addEventListener('click', () => this.saveConfig(name));
+  },
+
+  async saveConfig(name) {
+    const ta = document.getElementById('vhost-editor-textarea');
+    const resultEl = document.getElementById('vhost-test-result');
+    const statusEl = document.getElementById('vhost-save-status');
+    const saveBtn = document.getElementById('save-vhost-btn');
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Testing...';
+    statusEl.textContent = '';
+    resultEl.style.display = 'none';
+
+    try {
+      const result = await API.put(`/api/domains/${name}/config`, { content: ta.value });
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `<div class="info-box" style="border-color:var(--success);margin-bottom:0">
+        <p style="display:flex;align-items:center;gap:6px"><i data-lucide="check-circle" class="icon-sm" style="color:var(--success)"></i> <strong>Config saved & nginx reloaded!</strong></p>
+        <pre style="margin-top:8px;font-size:11px;color:var(--text-secondary)">${this.esc(result.testResult || '')}</pre>
+      </div>`;
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = 'Saved successfully';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      this.load();
+    } catch (err) {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `<div class="info-box" style="border-color:var(--danger);margin-bottom:0">
+        <p style="display:flex;align-items:center;gap:6px"><i data-lucide="alert-circle" class="icon-sm" style="color:var(--danger)"></i> <strong>Nginx test FAILED - changes reverted!</strong></p>
+        <pre style="margin-top:8px;font-size:11px;color:var(--danger);white-space:pre-wrap">${this.esc(err.message)}</pre>
+      </div>`;
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = 'Config restored to previous version';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i data-lucide="save" class="icon-xs"></i> Save & Test';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
   },
 
   async addDomain() {

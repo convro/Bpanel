@@ -131,6 +131,41 @@ router.post('/', (req, res) => {
   }
 });
 
+// Get vhost config content
+router.get('/:name/config', (req, res) => {
+  const { name } = req.params;
+  const filePath = path.join(SITES_AVAILABLE, name);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Config not found' });
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    res.json({ content, path: filePath });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Save vhost config with nginx test
+router.put('/:name/config', (req, res) => {
+  const { name } = req.params;
+  const { content } = req.body;
+  const filePath = path.join(SITES_AVAILABLE, name);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Config not found' });
+  if (!content) return res.status(400).json({ error: 'Content required' });
+
+  const backup = fs.readFileSync(filePath, 'utf-8');
+
+  try {
+    fs.writeFileSync(filePath, content);
+    const testResult = execSync('nginx -t 2>&1', { timeout: 10000 }).toString().trim();
+    execSync('systemctl reload nginx', { timeout: 10000 });
+    res.json({ ok: true, testResult });
+  } catch (err) {
+    fs.writeFileSync(filePath, backup);
+    const errorMsg = err.stderr ? err.stderr.toString() : err.stdout ? err.stdout.toString() : err.message;
+    res.status(400).json({ error: errorMsg, restored: true });
+  }
+});
+
 // Toggle enable/disable
 router.post('/:name/toggle', (req, res) => {
   const { name } = req.params;

@@ -11,29 +11,29 @@ const App = {
       Domains.init();
       SSL.init();
       SystemInfo.init();
+      Databases.init();
 
-      // Terminal init is optional - depends on CDN xterm loading
       if (typeof BTerminal !== 'undefined' && BTerminal.init) {
         try { BTerminal.init(); } catch (e) { console.warn('Terminal init failed:', e); }
       }
 
       this.initResizeHandles();
-      this.initTabs();
+      this.initDashTabs();
 
       document.getElementById('back-to-sessions').addEventListener('click', () => this.closeSession());
       document.getElementById('ws-logout-btn').addEventListener('click', () => Auth.logout());
 
-      // Check auth status
       const status = await Auth.checkStatus();
       if (status.user) {
         this.currentUser = status.user;
-        this.showView('sessions');
+        this.showView('dashboard');
       } else {
         this.showView('auth');
       }
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     } catch (err) {
       console.error('Bpanel init error:', err);
-      // Fallback: show auth view
       this.showView('auth');
     }
   },
@@ -45,14 +45,37 @@ const App = {
       case 'auth':
         document.getElementById('auth-view').style.display = 'block';
         break;
-      case 'sessions':
-        document.getElementById('sessions-view').style.display = 'block';
+      case 'dashboard':
+        document.getElementById('dashboard-view').style.display = 'block';
         Sessions.load();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         break;
       case 'workspace':
         document.getElementById('workspace-view').style.display = 'block';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         break;
     }
+  },
+
+  initDashTabs() {
+    document.querySelectorAll('.dash-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.dash-content').forEach(c => { c.style.display = 'none'; c.classList.remove('active'); });
+        const target = document.getElementById(`dash-${tab}`);
+        target.style.display = 'block';
+        target.classList.add('active');
+
+        if (tab === 'domains') Domains.load();
+        if (tab === 'ssl') SSL.load();
+        if (tab === 'system') SystemInfo.load();
+        if (tab === 'databases') Databases.load();
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      });
+    });
   },
 
   async openSession(sessionId) {
@@ -71,29 +94,10 @@ const App = {
     try { BTerminal.destroy(); } catch {}
     Editor.closeAll();
     this.currentSessionId = null;
-    this.showView('sessions');
-  },
-
-  initTabs() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-        document.getElementById(`tab-${tab}`).style.display = tab === 'files' ? 'flex' : 'block';
-
-        if (tab === 'domains') Domains.load();
-        if (tab === 'ssl') SSL.load();
-        if (tab === 'system') SystemInfo.load();
-
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      });
-    });
+    this.showView('dashboard');
   },
 
   initResizeHandles() {
-    // Sidebar horizontal resize
     const sidebar = document.getElementById('sidebar');
     const handle = document.getElementById('resize-handle');
     let dragging = false;
@@ -117,7 +121,6 @@ const App = {
       }
     });
 
-    // Terminal vertical resize
     const termArea = document.getElementById('terminal-area');
     const handleH = document.getElementById('resize-handle-h');
     let draggingH = false;

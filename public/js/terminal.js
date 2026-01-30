@@ -1,4 +1,4 @@
-const Terminal = {
+const BTerminal = {
   term: null,
   socket: null,
   fitAddon: null,
@@ -8,7 +8,6 @@ const Terminal = {
     document.getElementById('toggle-terminal').addEventListener('click', () => this.toggle());
     document.getElementById('close-terminal').addEventListener('click', () => this.hide());
 
-    // Resize observer for fit
     window.addEventListener('resize', () => {
       if (this.visible && this.fitAddon) {
         this.fit();
@@ -48,7 +47,15 @@ const Terminal = {
     const container = document.getElementById('terminal-container');
     container.innerHTML = '';
 
-    this.term = new window.Terminal({
+    // xterm.js UMD exposes window.Terminal
+    const XTerm = window.Terminal;
+    if (!XTerm) {
+      console.error('xterm.js not loaded');
+      container.innerHTML = '<p style="color:#f85149;padding:12px">Terminal failed to load. Check CDN connectivity.</p>';
+      return;
+    }
+
+    this.term = new XTerm({
       cursorBlink: true,
       fontSize: 14,
       fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
@@ -76,10 +83,12 @@ const Terminal = {
       },
     });
 
-    this.fitAddon = new window.FitAddon.FitAddon();
-    this.term.loadAddon(this.fitAddon);
-    this.term.open(container);
+    if (window.FitAddon && window.FitAddon.FitAddon) {
+      this.fitAddon = new window.FitAddon.FitAddon();
+      this.term.loadAddon(this.fitAddon);
+    }
 
+    this.term.open(container);
     this.connect();
   },
 
@@ -92,11 +101,17 @@ const Terminal = {
 
     this.socket.on('connect', () => {
       this.fit();
-      const dims = this.fitAddon.proposeDimensions();
+      let cols = 80, rows = 24;
+      if (this.fitAddon) {
+        try {
+          const dims = this.fitAddon.proposeDimensions();
+          if (dims) { cols = dims.cols; rows = dims.rows; }
+        } catch {}
+      }
       this.socket.emit('spawn', {
         sessionId: App.currentSessionId,
-        cols: dims ? dims.cols : 80,
-        rows: dims ? dims.rows : 24,
+        cols,
+        rows,
       });
     });
 

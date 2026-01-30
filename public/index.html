@@ -5,12 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bpanel</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+  <!-- CodeMirror 6 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codemirror/view@6.23.0/dist/index.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
   <div id="app">
     <!-- Auth View -->
-    <div id="auth-view" class="view" style="display:none">
+    <div id="auth-view" class="view">
       <div class="auth-container">
         <div class="auth-logo">
           <h1>B<span>panel</span></h1>
@@ -39,13 +43,13 @@
         </div>
         <div class="top-bar-right">
           <span id="user-display"></span>
-          <button id="logout-btn" class="btn btn-sm">Logout</button>
+          <button id="logout-btn" class="btn btn-sm"><i data-lucide="log-out" class="icon-sm"></i> Logout</button>
         </div>
       </header>
       <div class="sessions-container">
         <div class="sessions-header">
           <h2>Sessions</h2>
-          <button id="new-session-btn" class="btn btn-primary">+ New Session</button>
+          <button id="new-session-btn" class="btn btn-primary"><i data-lucide="plus" class="icon-sm"></i> New Session</button>
         </div>
         <div id="sessions-list" class="sessions-list"></div>
       </div>
@@ -74,26 +78,34 @@
     <div id="workspace-view" class="view" style="display:none">
       <header class="top-bar workspace-bar">
         <div class="top-bar-left">
-          <button id="back-to-sessions" class="btn btn-sm">← Sessions</button>
+          <button id="back-to-sessions" class="btn btn-sm"><i data-lucide="arrow-left" class="icon-sm"></i> Sessions</button>
           <h1 class="logo-sm">B<span>panel</span></h1>
           <span id="session-title" class="session-title"></span>
         </div>
         <div class="top-bar-right">
-          <button id="toggle-terminal" class="btn btn-sm">Terminal</button>
-          <button id="ws-logout-btn" class="btn btn-sm">Logout</button>
+          <button id="tab-files-btn" class="btn btn-sm tab-btn active" data-tab="files"><i data-lucide="folder" class="icon-sm"></i> Files</button>
+          <button id="tab-domains-btn" class="btn btn-sm tab-btn" data-tab="domains"><i data-lucide="globe" class="icon-sm"></i> Domains</button>
+          <button id="tab-ssl-btn" class="btn btn-sm tab-btn" data-tab="ssl"><i data-lucide="shield-check" class="icon-sm"></i> SSL</button>
+          <button id="tab-system-btn" class="btn btn-sm tab-btn" data-tab="system"><i data-lucide="monitor" class="icon-sm"></i> System</button>
+          <div class="top-bar-sep"></div>
+          <button id="toggle-terminal" class="btn btn-sm"><i data-lucide="terminal" class="icon-sm"></i> Terminal</button>
+          <button id="ws-logout-btn" class="btn btn-sm"><i data-lucide="log-out" class="icon-sm"></i></button>
         </div>
       </header>
-      <div class="workspace">
+
+      <!-- Files Tab -->
+      <div class="workspace tab-content" id="tab-files">
         <div class="sidebar" id="sidebar">
           <div class="sidebar-header">
+            <button id="go-up-btn" class="btn btn-icon" title="Go up"><i data-lucide="arrow-up" class="icon-sm"></i></button>
             <span id="current-path" class="current-path">/</span>
             <div class="sidebar-actions">
-              <button id="go-up-btn" class="btn btn-icon" title="Go up">↑</button>
-              <button id="refresh-btn" class="btn btn-icon" title="Refresh">⟳</button>
-              <button id="new-file-btn" class="btn btn-icon" title="New file">+f</button>
-              <button id="new-folder-btn" class="btn btn-icon" title="New folder">+d</button>
+              <button id="refresh-btn" class="btn btn-icon" title="Refresh"><i data-lucide="refresh-cw" class="icon-sm"></i></button>
+              <button id="new-file-btn" class="btn btn-icon" title="New file"><i data-lucide="file-plus" class="icon-sm"></i></button>
+              <button id="new-folder-btn" class="btn btn-icon" title="New folder"><i data-lucide="folder-plus" class="icon-sm"></i></button>
             </div>
           </div>
+          <div class="path-breadcrumbs" id="path-breadcrumbs"></div>
           <div id="file-tree" class="file-tree"></div>
         </div>
         <div class="resize-handle" id="resize-handle"></div>
@@ -101,6 +113,7 @@
           <div class="editor-area" id="editor-area">
             <div class="editor-tabs" id="editor-tabs"></div>
             <div class="editor-placeholder" id="editor-placeholder">
+              <i data-lucide="file-code" style="width:48px;height:48px;opacity:0.2;margin-bottom:12px"></i>
               <p>Select a file to edit</p>
             </div>
             <div id="editor-container" style="display:none"></div>
@@ -108,11 +121,127 @@
           <div class="resize-handle-h" id="resize-handle-h" style="display:none"></div>
           <div class="terminal-area" id="terminal-area" style="display:none">
             <div class="terminal-header">
-              <span>Terminal</span>
-              <button id="close-terminal" class="btn btn-icon">✕</button>
+              <span><i data-lucide="terminal" class="icon-sm"></i> Terminal</span>
+              <button id="close-terminal" class="btn btn-icon"><i data-lucide="x" class="icon-sm"></i></button>
             </div>
             <div id="terminal-container"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Domains Tab -->
+      <div class="tab-content" id="tab-domains" style="display:none">
+        <div class="panel-page">
+          <div class="panel-page-header">
+            <div>
+              <h2><i data-lucide="globe" class="icon-md"></i> Domains</h2>
+              <p class="text-muted">Connect your domains to this server. Point your domain's A record to your server IP, then add it here.</p>
+            </div>
+            <button class="btn btn-primary" id="add-domain-btn"><i data-lucide="plus" class="icon-sm"></i> Add Domain</button>
+          </div>
+
+          <div class="info-box">
+            <h4><i data-lucide="info" class="icon-sm"></i> How to connect a domain</h4>
+            <ol>
+              <li>Go to your domain registrar (Cloudflare, Namecheap, GoDaddy, etc.)</li>
+              <li>Find DNS settings for your domain</li>
+              <li>Add an <strong>A record</strong> pointing to your server IP: <code id="server-ip-display">loading...</code></li>
+              <li>Wait for DNS propagation (usually 5-30 min, max 48h)</li>
+              <li>Come back here and click "Add Domain"</li>
+              <li>Optionally add SSL certificate in the SSL tab</li>
+            </ol>
+          </div>
+
+          <div id="domains-list" class="domains-list"></div>
+
+          <!-- Add Domain Modal -->
+          <div id="add-domain-modal" class="modal" style="display:none">
+            <div class="modal-content">
+              <h3><i data-lucide="globe" class="icon-sm"></i> Add Domain</h3>
+              <div class="form-group">
+                <label>Domain Name</label>
+                <input type="text" id="domain-name-input" placeholder="example.com">
+              </div>
+              <div class="form-group">
+                <label>Type</label>
+                <select id="domain-type-select">
+                  <option value="static">Static Site (HTML/PHP)</option>
+                  <option value="proxy">Reverse Proxy (App port)</option>
+                </select>
+              </div>
+              <div class="form-group" id="domain-root-group">
+                <label>Web Root Directory</label>
+                <input type="text" id="domain-root-input" placeholder="/var/www/example.com">
+              </div>
+              <div class="form-group" id="domain-port-group" style="display:none">
+                <label>Application Port</label>
+                <input type="text" id="domain-port-input" placeholder="3000">
+              </div>
+              <div class="modal-actions">
+                <button class="btn" id="cancel-domain">Cancel</button>
+                <button class="btn btn-primary" id="confirm-domain">Add Domain</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SSL Tab -->
+      <div class="tab-content" id="tab-ssl" style="display:none">
+        <div class="panel-page">
+          <div class="panel-page-header">
+            <div>
+              <h2><i data-lucide="shield-check" class="icon-md"></i> SSL Certificates</h2>
+              <p class="text-muted">Manage SSL certificates with Let's Encrypt (Certbot). Free HTTPS for your domains.</p>
+            </div>
+            <button class="btn btn-primary" id="issue-ssl-btn"><i data-lucide="plus" class="icon-sm"></i> Issue Certificate</button>
+          </div>
+
+          <div class="info-box">
+            <h4><i data-lucide="info" class="icon-sm"></i> Requirements</h4>
+            <ul>
+              <li>Domain must be pointed to this server (A record)</li>
+              <li>Nginx must be installed and the domain must be added in the Domains tab</li>
+              <li>Port 80 must be open (for HTTP validation)</li>
+              <li>Certbot will be installed automatically if needed</li>
+            </ul>
+          </div>
+
+          <div id="ssl-status" class="ssl-status"></div>
+          <div id="ssl-list" class="ssl-list"></div>
+
+          <!-- Issue SSL Modal -->
+          <div id="issue-ssl-modal" class="modal" style="display:none">
+            <div class="modal-content">
+              <h3><i data-lucide="shield-check" class="icon-sm"></i> Issue SSL Certificate</h3>
+              <div class="form-group">
+                <label>Domain</label>
+                <input type="text" id="ssl-domain-input" placeholder="example.com">
+              </div>
+              <div class="form-group">
+                <label>Email (optional, for renewal notices)</label>
+                <input type="email" id="ssl-email-input" placeholder="you@example.com">
+              </div>
+              <div class="modal-actions">
+                <button class="btn" id="cancel-ssl">Cancel</button>
+                <button class="btn btn-primary" id="confirm-ssl">Issue Certificate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Tab -->
+      <div class="tab-content" id="tab-system" style="display:none">
+        <div class="panel-page">
+          <div class="panel-page-header">
+            <div>
+              <h2><i data-lucide="monitor" class="icon-md"></i> System Information</h2>
+              <p class="text-muted">Server details, installed software, and resource usage.</p>
+            </div>
+            <button class="btn btn-sm" id="refresh-system-btn"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
+          </div>
+          <div id="system-info-content"></div>
         </div>
       </div>
     </div>
@@ -127,6 +256,9 @@
   <script src="/js/filemanager.js"></script>
   <script src="/js/editor.js"></script>
   <script src="/js/terminal.js"></script>
+  <script src="/js/domains.js"></script>
+  <script src="/js/ssl.js"></script>
+  <script src="/js/systeminfo.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

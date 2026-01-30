@@ -424,5 +424,209 @@ html, body {
   z-index: 199;
 }
 
+/* ===== Icon Sizing ===== */
+.icon-xs { width: 12px; height: 12px; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-md { width: 20px; height: 20px; }
+.file-icon { width: 16px; height: 16px; }
+
+/* ===== Tab Buttons ===== */
+.tab-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+.top-bar-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+/* ===== Breadcrumbs ===== */
+.path-breadcrumbs {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+.breadcrumb-item { cursor: pointer; color: var(--text-secondary); }
+.breadcrumb-item:hover { color: var(--accent); }
+.breadcrumb-sep { margin: 0 2px; color: var(--text-muted); }
+
+/* ===== Editor Highlight Overlay ===== */
+.editor-wrapper {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+.editor-highlight {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 12px 16px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  pointer-events: none;
+  background: transparent;
+  border: none;
+  color: transparent;
+}
+.editor-highlight code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  background: transparent !important;
+  padding: 0 !important;
+}
+.editor-wrapper .code-editor {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg-primary);
+  color: transparent;
+  caret-color: var(--text-primary);
+  z-index: 1;
+}
+
+/* ===== Context Menu Icons ===== */
+.context-menu-item { display: flex; align-items: center; gap: 8px; }
+
+/* ===== Badges ===== */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+.badge-success { background: rgba(63,185,80,0.15); color: var(--success); }
+.badge-danger { background: rgba(248,81,73,0.15); color: var(--danger); }
+.badge-muted { background: var(--bg-hover); color: var(--text-muted); }
+.badge-accent { background: var(--accent-bg); color: var(--accent); }
+
+/* ===== Panel Pages (Domains, SSL, System) ===== */
+.panel-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 24px 60px;
+  height: calc(100vh - var(--topbar-height));
+  overflow-y: auto;
+}
+.panel-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+.panel-page-header h2 { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.panel-page-header .text-muted { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+
+/* ===== Info Box ===== */
+.info-box {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.info-box h4 { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 14px; }
+.info-box ol, .info-box ul { padding-left: 20px; }
+.info-box li { margin-bottom: 4px; }
+.info-box code { background: var(--bg-primary); padding: 2px 6px; border-radius: 3px; font-family: var(--font-mono); font-size: 12px; }
+
+/* ===== Domain Cards ===== */
+.domains-list { display: flex; flex-direction: column; gap: 8px; }
+.domain-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.domain-info { flex: 1; }
+.domain-name { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.domain-detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.domain-actions { display: flex; gap: 6px; }
+
+/* ===== SSL Cards ===== */
+.ssl-list { display: flex; flex-direction: column; gap: 8px; }
+.ssl-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.ssl-info { flex: 1; }
+.ssl-name { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.ssl-detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.ssl-actions { display: flex; gap: 6px; }
+
+/* ===== System Info ===== */
+.sys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.sys-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.sys-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sys-card-body { padding: 12px 16px; }
+.sys-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.sys-row span:first-child { color: var(--text-secondary); }
+.sys-row span:last-child { font-family: var(--font-mono); font-size: 12px; }
+.sys-bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+.sys-bar {
+  height: 6px;
+  background: var(--bg-primary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.sys-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.sys-section { margin-top: 24px; }
+.sys-section h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 16px; }
+.sys-category { margin-bottom: 16px; }
+.sys-category h4 { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+.sys-versions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px;
+}
+.sys-version-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.sys-ver-name { font-weight: 600; }
+.sys-ver-val { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); max-width: 60%; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ===== Utility ===== */
 .hidden { display: none !important; }

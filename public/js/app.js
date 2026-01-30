@@ -8,6 +8,9 @@ const App = {
       Sessions.init();
       FileManager.init();
       Editor.init();
+      Domains.init();
+      SSL.init();
+      SystemInfo.init();
 
       // Terminal init is optional - depends on CDN xterm loading
       if (typeof BTerminal !== 'undefined' && BTerminal.init) {
@@ -15,6 +18,7 @@ const App = {
       }
 
       this.initResizeHandles();
+      this.initTabs();
 
       document.getElementById('back-to-sessions').addEventListener('click', () => this.closeSession());
       document.getElementById('ws-logout-btn').addEventListener('click', () => Auth.logout());
@@ -68,6 +72,24 @@ const App = {
     Editor.closeAll();
     this.currentSessionId = null;
     this.showView('sessions');
+  },
+
+  initTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        document.getElementById(`tab-${tab}`).style.display = tab === 'files' ? 'flex' : 'block';
+
+        if (tab === 'domains') Domains.load();
+        if (tab === 'ssl') SSL.load();
+        if (tab === 'system') SystemInfo.load();
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      });
+    });
   },
 
   initResizeHandles() {

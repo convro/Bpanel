@@ -9,6 +9,8 @@ const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
 const fileRoutes = require('./routes/files');
 const systemRoutes = require('./routes/system');
+const domainRoutes = require('./routes/domains');
+const sslRoutes = require('./routes/ssl');
 const { setupTerminalSocket } = require('./socket/terminal');
 
 function createServer() {
@@ -27,6 +29,8 @@ function createServer() {
   app.use('/api/sessions', sessionRoutes);
   app.use('/api/files', fileRoutes);
   app.use('/api/system', systemRoutes);
+  app.use('/api/domains', domainRoutes);
+  app.use('/api/ssl', sslRoutes);
 
   // Static files
   app.use(express.static(config.publicDir));

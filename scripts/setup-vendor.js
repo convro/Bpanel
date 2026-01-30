@@ -4,47 +4,65 @@
 const fs = require('fs');
 const path = require('path');
 
+const root = path.join(__dirname, '..');
+
 const copies = [
   {
-    src: 'node_modules/xterm/css/xterm.css',
+    candidates: [
+      'node_modules/xterm/css/xterm.css',
+    ],
     dest: 'public/vendor/xterm/xterm.css',
   },
   {
-    src: 'node_modules/xterm/lib/xterm.js',
+    candidates: [
+      'node_modules/xterm/lib/xterm.js',
+      'node_modules/xterm/lib/xterm.mjs',
+    ],
     dest: 'public/vendor/xterm/xterm.js',
   },
   {
-    src: 'node_modules/@xterm/addon-fit/lib/addon-fit.js',
+    candidates: [
+      'node_modules/@xterm/addon-fit/lib/addon-fit.js',
+      'node_modules/@xterm/addon-fit/lib/addon-fit.mjs',
+      'node_modules/xterm-addon-fit/lib/xterm-addon-fit.js',
+    ],
     dest: 'public/vendor/xterm/xterm-addon-fit.js',
   },
   {
-    src: 'node_modules/socket.io/client-dist/socket.io.min.js',
+    candidates: [
+      'node_modules/socket.io/client-dist/socket.io.min.js',
+      'node_modules/socket.io-client/dist/socket.io.min.js',
+      'node_modules/socket.io-client/dist/socket.io.js',
+    ],
     dest: 'public/vendor/socket.io/socket.io.min.js',
   },
 ];
 
-const root = path.join(__dirname, '..');
+let missing = [];
 
-for (const { src, dest } of copies) {
-  const srcPath = path.join(root, src);
+for (const { candidates, dest } of copies) {
   const destPath = path.join(root, dest);
+  let found = false;
 
-  // Try alternate paths
-  let actualSrc = srcPath;
-  if (!fs.existsSync(actualSrc)) {
-    // xterm v5 uses different path
-    const alt = srcPath.replace('xterm/lib/', 'xterm/');
-    if (fs.existsSync(alt)) actualSrc = alt;
+  for (const src of candidates) {
+    const srcPath = path.join(root, src);
+    if (fs.existsSync(srcPath)) {
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+      fs.copyFileSync(srcPath, destPath);
+      console.log(`✓ ${src} → ${dest}`);
+      found = true;
+      break;
+    }
   }
 
-  if (!fs.existsSync(actualSrc)) {
-    console.warn(`⚠ Not found: ${src} - skipping`);
-    continue;
+  if (!found) {
+    console.warn(`⚠ Not found: ${dest} (tried: ${candidates.join(', ')})`);
+    missing.push(dest);
   }
-
-  fs.mkdirSync(path.dirname(destPath), { recursive: true });
-  fs.copyFileSync(actualSrc, destPath);
-  console.log(`✓ ${src} → ${dest}`);
 }
 
-console.log('\nVendor files ready.');
+if (missing.length > 0) {
+  console.error(`\n✗ ${missing.length} vendor file(s) missing. Check your node_modules.`);
+} else {
+  console.log('\n✓ All vendor files ready.');
+}

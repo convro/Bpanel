@@ -123,11 +123,15 @@ const Editor = {
 
     const updateHighlight = () => {
       const text = textarea.value;
-      // Add newline at end to keep sizes synced
       code.textContent = text + (text.endsWith('\n') ? ' ' : '\n');
       code.className = `language-${lang}`;
       if (window.hljs) {
-        try { window.hljs.highlightElement(code); } catch {}
+        try {
+          window.hljs.highlightElement(code);
+          wrapper.classList.add('hl-active');
+        } catch {
+          wrapper.classList.remove('hl-active');
+        }
       }
     };
 

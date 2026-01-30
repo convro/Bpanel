@@ -63,7 +63,7 @@ const Auth = {
       const endpoint = this.isSetup ? '/api/auth/register' : '/api/auth/login';
       const data = await API.post(endpoint, { username, password });
       App.currentUser = data.user;
-      App.showView('sessions');
+      App.showView('dashboard');
     } catch (err) {
       error.textContent = err.message;
     }

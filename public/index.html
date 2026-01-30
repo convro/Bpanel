@@ -6,9 +6,6 @@
   <title>Bpanel</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
-  <!-- CodeMirror 6 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@codemirror/view@6.23.0/dist/index.css">
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
@@ -35,102 +32,57 @@
       </div>
     </div>
 
-    <!-- Sessions View -->
-    <div id="sessions-view" class="view" style="display:none">
+    <!-- Main Dashboard View (after login) -->
+    <div id="dashboard-view" class="view" style="display:none">
       <header class="top-bar">
         <div class="top-bar-left">
           <h1 class="logo-sm">B<span>panel</span></h1>
+        </div>
+        <div class="top-bar-center">
+          <button class="btn btn-sm dash-tab active" data-tab="sessions"><i data-lucide="layout-grid" class="icon-sm"></i> Sessions</button>
+          <button class="btn btn-sm dash-tab" data-tab="domains"><i data-lucide="globe" class="icon-sm"></i> Domains</button>
+          <button class="btn btn-sm dash-tab" data-tab="ssl"><i data-lucide="shield-check" class="icon-sm"></i> SSL</button>
+          <button class="btn btn-sm dash-tab" data-tab="databases"><i data-lucide="database" class="icon-sm"></i> Databases</button>
+          <button class="btn btn-sm dash-tab" data-tab="system"><i data-lucide="monitor" class="icon-sm"></i> System</button>
         </div>
         <div class="top-bar-right">
           <span id="user-display"></span>
           <button id="logout-btn" class="btn btn-sm"><i data-lucide="log-out" class="icon-sm"></i> Logout</button>
         </div>
       </header>
-      <div class="sessions-container">
-        <div class="sessions-header">
-          <h2>Sessions</h2>
-          <button id="new-session-btn" class="btn btn-primary"><i data-lucide="plus" class="icon-sm"></i> New Session</button>
-        </div>
-        <div id="sessions-list" class="sessions-list"></div>
-      </div>
 
-      <!-- New Session Modal -->
-      <div id="new-session-modal" class="modal" style="display:none">
-        <div class="modal-content">
-          <h3>New Session</h3>
-          <div class="form-group">
-            <label>Session Name</label>
-            <input type="text" id="session-name" placeholder="My Project">
+      <!-- Sessions Tab -->
+      <div class="dash-content active" id="dash-sessions">
+        <div class="sessions-container">
+          <div class="sessions-header">
+            <h2><i data-lucide="layout-grid" class="icon-md"></i> Sessions</h2>
+            <button id="new-session-btn" class="btn btn-primary"><i data-lucide="plus" class="icon-sm"></i> New Session</button>
           </div>
-          <div class="form-group">
-            <label>Working Directory</label>
-            <input type="text" id="session-dir" placeholder="/root/myproject" value="/root">
-          </div>
-          <div class="modal-actions">
-            <button id="cancel-session" class="btn">Cancel</button>
-            <button id="create-session" class="btn btn-primary">Create</button>
-          </div>
+          <div id="sessions-list" class="sessions-list"></div>
         </div>
-      </div>
-    </div>
 
-    <!-- Workspace View -->
-    <div id="workspace-view" class="view" style="display:none">
-      <header class="top-bar workspace-bar">
-        <div class="top-bar-left">
-          <button id="back-to-sessions" class="btn btn-sm"><i data-lucide="arrow-left" class="icon-sm"></i> Sessions</button>
-          <h1 class="logo-sm">B<span>panel</span></h1>
-          <span id="session-title" class="session-title"></span>
-        </div>
-        <div class="top-bar-right">
-          <button id="tab-files-btn" class="btn btn-sm tab-btn active" data-tab="files"><i data-lucide="folder" class="icon-sm"></i> Files</button>
-          <button id="tab-domains-btn" class="btn btn-sm tab-btn" data-tab="domains"><i data-lucide="globe" class="icon-sm"></i> Domains</button>
-          <button id="tab-ssl-btn" class="btn btn-sm tab-btn" data-tab="ssl"><i data-lucide="shield-check" class="icon-sm"></i> SSL</button>
-          <button id="tab-system-btn" class="btn btn-sm tab-btn" data-tab="system"><i data-lucide="monitor" class="icon-sm"></i> System</button>
-          <div class="top-bar-sep"></div>
-          <button id="toggle-terminal" class="btn btn-sm"><i data-lucide="terminal" class="icon-sm"></i> Terminal</button>
-          <button id="ws-logout-btn" class="btn btn-sm"><i data-lucide="log-out" class="icon-sm"></i></button>
-        </div>
-      </header>
-
-      <!-- Files Tab -->
-      <div class="workspace tab-content" id="tab-files">
-        <div class="sidebar" id="sidebar">
-          <div class="sidebar-header">
-            <button id="go-up-btn" class="btn btn-icon" title="Go up"><i data-lucide="arrow-up" class="icon-sm"></i></button>
-            <span id="current-path" class="current-path">/</span>
-            <div class="sidebar-actions">
-              <button id="refresh-btn" class="btn btn-icon" title="Refresh"><i data-lucide="refresh-cw" class="icon-sm"></i></button>
-              <button id="new-file-btn" class="btn btn-icon" title="New file"><i data-lucide="file-plus" class="icon-sm"></i></button>
-              <button id="new-folder-btn" class="btn btn-icon" title="New folder"><i data-lucide="folder-plus" class="icon-sm"></i></button>
+        <!-- New Session Modal -->
+        <div id="new-session-modal" class="modal" style="display:none">
+          <div class="modal-content">
+            <h3>New Session</h3>
+            <div class="form-group">
+              <label>Session Name</label>
+              <input type="text" id="session-name" placeholder="My Project">
             </div>
-          </div>
-          <div class="path-breadcrumbs" id="path-breadcrumbs"></div>
-          <div id="file-tree" class="file-tree"></div>
-        </div>
-        <div class="resize-handle" id="resize-handle"></div>
-        <div class="main-area">
-          <div class="editor-area" id="editor-area">
-            <div class="editor-tabs" id="editor-tabs"></div>
-            <div class="editor-placeholder" id="editor-placeholder">
-              <i data-lucide="file-code" style="width:48px;height:48px;opacity:0.2;margin-bottom:12px"></i>
-              <p>Select a file to edit</p>
+            <div class="form-group">
+              <label>Working Directory</label>
+              <input type="text" id="session-dir" placeholder="/root/myproject" value="/root">
             </div>
-            <div id="editor-container" style="display:none"></div>
-          </div>
-          <div class="resize-handle-h" id="resize-handle-h" style="display:none"></div>
-          <div class="terminal-area" id="terminal-area" style="display:none">
-            <div class="terminal-header">
-              <span><i data-lucide="terminal" class="icon-sm"></i> Terminal</span>
-              <button id="close-terminal" class="btn btn-icon"><i data-lucide="x" class="icon-sm"></i></button>
+            <div class="modal-actions">
+              <button id="cancel-session" class="btn">Cancel</button>
+              <button id="create-session" class="btn btn-primary">Create</button>
             </div>
-            <div id="terminal-container"></div>
           </div>
         </div>
       </div>
 
       <!-- Domains Tab -->
-      <div class="tab-content" id="tab-domains" style="display:none">
+      <div class="dash-content" id="dash-domains" style="display:none">
         <div class="panel-page">
           <div class="panel-page-header">
             <div>
@@ -187,7 +139,7 @@
       </div>
 
       <!-- SSL Tab -->
-      <div class="tab-content" id="tab-ssl" style="display:none">
+      <div class="dash-content" id="dash-ssl" style="display:none">
         <div class="panel-page">
           <div class="panel-page-header">
             <div>
@@ -231,8 +183,77 @@
         </div>
       </div>
 
+      <!-- Databases Tab -->
+      <div class="dash-content" id="dash-databases" style="display:none">
+        <div class="panel-page">
+          <div class="panel-page-header">
+            <div>
+              <h2><i data-lucide="database" class="icon-md"></i> Databases</h2>
+              <p class="text-muted">Create, configure, and manage PostgreSQL & MariaDB databases.</p>
+            </div>
+            <button class="btn btn-primary" id="create-db-btn"><i data-lucide="plus" class="icon-sm"></i> Create Database</button>
+          </div>
+
+          <div id="db-engine-status"></div>
+
+          <div class="info-box">
+            <h4><i data-lucide="info" class="icon-sm"></i> Quick Setup Guide</h4>
+            <ol>
+              <li>Install your preferred database engine using the buttons below (if not installed)</li>
+              <li>Create a database with a user and password</li>
+              <li>Use the connection details in your application config</li>
+              <li>Use the built-in terminal to run SQL queries or import schemas</li>
+            </ol>
+          </div>
+
+          <div id="db-list" class="db-list"></div>
+
+          <!-- DB Terminal -->
+          <div id="db-terminal-section" style="display:none;margin-top:24px">
+            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><i data-lucide="terminal" class="icon-sm"></i> Database Terminal</h3>
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <select id="db-terminal-select" class="form-group" style="margin:0;padding:6px 12px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius);font-size:13px">
+                <option value="">Select database...</option>
+              </select>
+              <button class="btn btn-sm" id="db-terminal-connect"><i data-lucide="play" class="icon-xs"></i> Connect</button>
+            </div>
+            <div id="db-terminal-container" style="height:300px;background:#000;border-radius:var(--radius);overflow:hidden"></div>
+          </div>
+
+          <!-- Create DB Modal -->
+          <div id="create-db-modal" class="modal" style="display:none">
+            <div class="modal-content">
+              <h3><i data-lucide="database" class="icon-sm"></i> Create Database</h3>
+              <div class="form-group">
+                <label>Engine</label>
+                <select id="db-engine-select">
+                  <option value="postgresql">PostgreSQL</option>
+                  <option value="mariadb">MariaDB</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Database Name</label>
+                <input type="text" id="db-name-input" placeholder="myapp_db">
+              </div>
+              <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="db-user-input" placeholder="myapp_user">
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="db-pass-input" placeholder="Strong password">
+              </div>
+              <div class="modal-actions">
+                <button class="btn" id="cancel-db">Cancel</button>
+                <button class="btn btn-primary" id="confirm-db">Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- System Tab -->
-      <div class="tab-content" id="tab-system" style="display:none">
+      <div class="dash-content" id="dash-system" style="display:none">
         <div class="panel-page">
           <div class="panel-page-header">
             <div>
@@ -242,6 +263,56 @@
             <button class="btn btn-sm" id="refresh-system-btn"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
           </div>
           <div id="system-info-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workspace View (inside a session) -->
+    <div id="workspace-view" class="view" style="display:none">
+      <header class="top-bar workspace-bar">
+        <div class="top-bar-left">
+          <button id="back-to-sessions" class="btn btn-sm"><i data-lucide="arrow-left" class="icon-sm"></i> Dashboard</button>
+          <h1 class="logo-sm">B<span>panel</span></h1>
+          <span id="session-title" class="session-title"></span>
+        </div>
+        <div class="top-bar-right">
+          <button id="toggle-terminal" class="btn btn-sm"><i data-lucide="terminal" class="icon-sm"></i> Terminal</button>
+          <button id="ws-logout-btn" class="btn btn-sm"><i data-lucide="log-out" class="icon-sm"></i></button>
+        </div>
+      </header>
+
+      <div class="workspace" id="tab-files">
+        <div class="sidebar" id="sidebar">
+          <div class="sidebar-header">
+            <button id="go-up-btn" class="btn btn-icon" title="Go up"><i data-lucide="arrow-up" class="icon-sm"></i></button>
+            <span id="current-path" class="current-path">/</span>
+            <div class="sidebar-actions">
+              <button id="refresh-btn" class="btn btn-icon" title="Refresh"><i data-lucide="refresh-cw" class="icon-sm"></i></button>
+              <button id="new-file-btn" class="btn btn-icon" title="New file"><i data-lucide="file-plus" class="icon-sm"></i></button>
+              <button id="new-folder-btn" class="btn btn-icon" title="New folder"><i data-lucide="folder-plus" class="icon-sm"></i></button>
+            </div>
+          </div>
+          <div class="path-breadcrumbs" id="path-breadcrumbs"></div>
+          <div id="file-tree" class="file-tree"></div>
+        </div>
+        <div class="resize-handle" id="resize-handle"></div>
+        <div class="main-area">
+          <div class="editor-area" id="editor-area">
+            <div class="editor-tabs" id="editor-tabs"></div>
+            <div class="editor-placeholder" id="editor-placeholder">
+              <i data-lucide="file-code" style="width:48px;height:48px;opacity:0.2;margin-bottom:12px"></i>
+              <p>Select a file to edit</p>
+            </div>
+            <div id="editor-container" style="display:none"></div>
+          </div>
+          <div class="resize-handle-h" id="resize-handle-h" style="display:none"></div>
+          <div class="terminal-area" id="terminal-area" style="display:none">
+            <div class="terminal-header">
+              <span><i data-lucide="terminal" class="icon-sm"></i> Terminal</span>
+              <button id="close-terminal" class="btn btn-icon"><i data-lucide="x" class="icon-sm"></i></button>
+            </div>
+            <div id="terminal-container"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -259,6 +330,7 @@
   <script src="/js/domains.js"></script>
   <script src="/js/ssl.js"></script>
   <script src="/js/systeminfo.js"></script>
+  <script src="/js/databases.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

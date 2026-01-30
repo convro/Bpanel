@@ -29,19 +29,27 @@ function setupTerminalSocket(io) {
     socket.on('spawn', (data) => {
       const { sessionId, cols, rows } = data;
 
-      // Verify session belongs to user
-      const session = getDb()
-        .prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?')
-        .get(sessionId, socket.user.id);
+      let cwd = '/root';
 
-      if (!session) {
-        socket.emit('error', 'Session not found');
-        return;
+      // Special session IDs (db-terminal, etc.) don't need DB lookup
+      if (sessionId && String(sessionId).startsWith('db-terminal')) {
+        cwd = '/root';
+      } else {
+        // Verify session belongs to user
+        const session = getDb()
+          .prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?')
+          .get(sessionId, socket.user.id);
+
+        if (!session) {
+          socket.emit('error', 'Session not found');
+          return;
+        }
+        cwd = session.working_directory;
       }
 
       currentSessionId = sessionId;
 
-      const term = terminalService.spawn(sessionId, session.working_directory, cols || 80, rows || 24);
+      const term = terminalService.spawn(sessionId, cwd, cols || 80, rows || 24);
 
       term.onData((data) => {
         socket.emit('data', data);

@@ -22,6 +22,10 @@
           <a href="#web-terminal">Web Terminal</a>
           <a href="#sessions">Sessions</a>
           <a href="#auth">Authentication</a>
+          <a href="#domain-manager">Domain Manager</a>
+          <a href="#ssl-manager">SSL Manager</a>
+          <a href="#database-manager">Database Manager</a>
+          <a href="#system-info">System Monitor</a>
 
           <h4>Configuration</h4>
           <a href="#port">Port</a>
@@ -142,6 +146,194 @@ Session: "Configs"    &rarr; /etc</pre>
               <li>JWT tokens stored in httpOnly cookies</li>
               <li>Tokens expire after 7 days</li>
               <li>Minimum password length: 6 characters</li>
+            </ul>
+          </section>
+
+          <section id="domain-manager" class="doc-section">
+            <h2>Domain Manager</h2>
+            <p>Manage Nginx virtual hosts directly from Bpanel. Add domains, configure static sites or reverse proxies, edit raw configs &mdash; all without SSH.</p>
+
+            <h3>Adding a Domain</h3>
+            <p>Go to the <strong>Domains</strong> tab in the dashboard. Click <strong>Add Domain</strong> and fill in:</p>
+            <ul>
+              <li><strong>Domain name</strong> &mdash; e.g., <code>example.com</code></li>
+              <li><strong>Type</strong> &mdash; Static (HTML/PHP) or Reverse Proxy</li>
+              <li><strong>Root directory</strong> &mdash; for static sites (e.g., <code>/var/www/example</code>)</li>
+              <li><strong>Proxy port</strong> &mdash; for reverse proxy (e.g., <code>3000</code>)</li>
+            </ul>
+            <p>Bpanel automatically creates the Nginx config, enables the site, tests the configuration, and reloads Nginx.</p>
+
+            <h3>Configuration Types</h3>
+            <div class="code-block">
+              <div class="code-header"><span>Static Site (HTML/PHP)</span></div>
+              <pre>server {
+    listen 80;
+    server_name example.com;
+    root /var/www/example.com;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+    }
+}</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-header"><span>Reverse Proxy (Node.js, Python, etc.)</span></div>
+              <pre>server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}</pre>
+            </div>
+
+            <h3>Actions</h3>
+            <ul>
+              <li><strong>Edit Config</strong> &mdash; Open raw Nginx config in editor</li>
+              <li><strong>Enable/Disable</strong> &mdash; Toggle site without deleting</li>
+              <li><strong>Delete</strong> &mdash; Remove config file entirely</li>
+            </ul>
+            <div class="doc-info">
+              <strong>Note:</strong> All config changes are tested with <code>nginx -t</code> before applying. If test fails, changes are rolled back automatically.
+            </div>
+          </section>
+
+          <section id="ssl-manager" class="doc-section">
+            <h2>SSL Manager</h2>
+            <p>Manage Let's Encrypt SSL certificates through Certbot &mdash; directly from the UI. Issue, view, and revoke certificates without touching the command line.</p>
+
+            <h3>Prerequisites</h3>
+            <p>SSL Manager requires Certbot. If not installed, Bpanel shows an install button that runs:</p>
+            <div class="code-block">
+              <div class="code-header"><span>bash</span></div>
+              <pre>apt install -y certbot python3-certbot-nginx</pre>
+            </div>
+
+            <h3>Issuing a Certificate</h3>
+            <p>Go to the <strong>SSL</strong> tab. Click <strong>Issue Certificate</strong> and provide:</p>
+            <ul>
+              <li><strong>Domain</strong> &mdash; Must already have DNS pointing to this server</li>
+              <li><strong>Email</strong> &mdash; For renewal notifications (optional but recommended)</li>
+            </ul>
+            <p>Bpanel runs:</p>
+            <div class="code-block">
+              <div class="code-header"><span>bash</span></div>
+              <pre>certbot --nginx -d example.com --email you@email.com --agree-tos --non-interactive --redirect</pre>
+            </div>
+            <p>This automatically configures HTTPS and sets up HTTP &rarr; HTTPS redirect.</p>
+
+            <h3>Certificate List</h3>
+            <p>View all certificates with:</p>
+            <ul>
+              <li>Certificate name</li>
+              <li>Covered domains</li>
+              <li>Expiration date (with color indicators)</li>
+              <li>Certificate path on disk</li>
+              <li>Status (VALID / INVALID / EXPIRING SOON)</li>
+            </ul>
+
+            <h3>Actions</h3>
+            <ul>
+              <li><strong>Renew All</strong> &mdash; Runs <code>certbot renew</code></li>
+              <li><strong>Revoke</strong> &mdash; Revokes individual certificate</li>
+            </ul>
+            <div class="doc-warning">
+              <strong>Note:</strong> Domain DNS must point to your server before issuing. Let's Encrypt validates by connecting to port 80.
+            </div>
+          </section>
+
+          <section id="database-manager" class="doc-section">
+            <h2>Database Manager</h2>
+            <p>Create and manage PostgreSQL and MariaDB databases. Set up users, permissions, and get connection strings &mdash; all from the dashboard.</p>
+
+            <h3>Supported Databases</h3>
+            <table class="doc-table">
+              <tr><th>Engine</th><th>Port</th><th>Status</th></tr>
+              <tr><td>PostgreSQL</td><td>5432</td><td>Auto-detected</td></tr>
+              <tr><td>MariaDB / MySQL</td><td>3306</td><td>Auto-detected</td></tr>
+            </table>
+            <p>If not installed, click the <strong>Install</strong> button to set up the engine.</p>
+
+            <h3>Creating a Database</h3>
+            <p>Go to the <strong>Databases</strong> tab. Click <strong>Create Database</strong> and provide:</p>
+            <ul>
+              <li><strong>Engine</strong> &mdash; PostgreSQL or MariaDB</li>
+              <li><strong>Database name</strong></li>
+              <li><strong>Username</strong> &mdash; A new user is created</li>
+              <li><strong>Password</strong> &mdash; For the new user</li>
+            </ul>
+            <p>Bpanel automatically:</p>
+            <ol>
+              <li>Creates the database</li>
+              <li>Creates the user with password</li>
+              <li>Grants all privileges on the database</li>
+              <li>Shows you the connection string</li>
+            </ol>
+
+            <h3>Connection Strings</h3>
+            <div class="code-block">
+              <div class="code-header"><span>PostgreSQL</span></div>
+              <pre>postgresql://username:password@localhost:5432/dbname</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-header"><span>MariaDB / MySQL</span></div>
+              <pre>mysql://username:password@localhost:3306/dbname</pre>
+            </div>
+
+            <h3>SQL Terminal</h3>
+            <p>Click the <strong>Connect</strong> button on any database to open a terminal session directly connected to that database (<code>psql</code> or <code>mysql</code> client).</p>
+          </section>
+
+          <section id="system-info" class="doc-section">
+            <h2>System Monitor</h2>
+            <p>View server resources and installed software at a glance. CPU, memory, disk usage, plus auto-detection of 25+ common tools.</p>
+
+            <h3>Resource Monitoring</h3>
+            <table class="doc-table">
+              <tr><th>Metric</th><th>Details</th></tr>
+              <tr><td>CPU</td><td>Core count, load average (1m, 5m, 15m)</td></tr>
+              <tr><td>Memory</td><td>Total, used, free &mdash; with percentage bar</td></tr>
+              <tr><td>Disk</td><td>Total, used, free &mdash; with percentage bar</td></tr>
+              <tr><td>Uptime</td><td>System uptime in days/hours/minutes</td></tr>
+            </table>
+            <p>Progress bars change color based on usage: green (&lt;60%), yellow (60-85%), red (&gt;85%).</p>
+
+            <h3>Server Information</h3>
+            <ul>
+              <li>Hostname</li>
+              <li>Operating System (Ubuntu, Debian, etc.)</li>
+              <li>Architecture (x64, arm64)</li>
+              <li>Kernel version</li>
+            </ul>
+
+            <h3>Installed Software Detection</h3>
+            <p>Bpanel auto-detects and shows versions for:</p>
+            <div class="code-block">
+              <div class="code-header"><span>Detected Software</span></div>
+              <pre>Web Servers:    nginx, apache2
+Languages:      node, php, python3, ruby, go, rust, java
+Package Mgrs:   npm, yarn, composer, pip
+Databases:      postgresql, mysql, redis, mongodb
+DevOps:         docker, git, make, gcc
+Utilities:      certbot, pm2, curl, wget, ufw</pre>
+            </div>
+
+            <h3>Nginx Status</h3>
+            <p>If Nginx is installed, the System tab also shows:</p>
+            <ul>
+              <li>Config test result (<code>nginx -t</code>)</li>
+              <li>List of enabled sites from <code>/etc/nginx/sites-enabled/</code></li>
             </ul>
           </section>
 

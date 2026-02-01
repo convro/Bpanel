@@ -173,6 +173,10 @@
     padding: 80px 0;
   }
 
+  .preview-workspace-section {
+    padding-top: 40px;
+  }
+
   .preview-body {
     flex-direction: column;
   }
@@ -188,6 +192,27 @@
   .preview-code {
     font-size: 11px;
     padding: 12px;
+  }
+
+  /* Dashboard Preview Mobile */
+  .preview-dash-tabs {
+    overflow-x: auto;
+    padding: 0 8px;
+  }
+
+  .preview-dash-tab {
+    padding: 10px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .preview-dash-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .preview-dash-card {
+    padding: 16px;
   }
 
   /* CTA Mobile */

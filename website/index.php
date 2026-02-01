@@ -7,7 +7,7 @@
       <div class="hero-badge">Open Source VPS Panel</div>
       <h1 class="hero-title">B<span>panel</span></h1>
       <p class="hero-tagline">Something fucking refreshing</p>
-      <p class="hero-desc">A web-based VPS management panel built with Node.js. Full file manager, code editor, and terminal &mdash; right in your browser. No bloat, no bullshit.</p>
+      <p class="hero-desc">A web-based VPS management panel built with Node.js. File manager, code editor, terminal, domain &amp; SSL management, database control, and system monitoring &mdash; all in your browser. No bloat, no bullshit.</p>
       <div class="hero-actions">
         <a href="/install.php" class="btn btn-primary btn-lg">Get Started</a>
         <a href="/docs.php" class="btn btn-outline btn-lg">Documentation</a>
@@ -63,6 +63,30 @@
           <h3>One-Line Install</h3>
           <p>Single bash command. Installs Node.js, sets up systemd service, starts automatically. From zero to running panel in under 2 minutes. No Docker needed.</p>
         </div>
+
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">&#127760;</div>
+          <h3>Domain Manager</h3>
+          <p>Full Nginx management. Add domains with one click, configure static sites or reverse proxies. Edit raw config, enable/disable sites, auto-reload. No SSH needed.</p>
+        </div>
+
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">&#128272;</div>
+          <h3>SSL Manager</h3>
+          <p>Let's Encrypt integration via Certbot. Issue certificates, auto-renew, revoke &mdash; all from the UI. HTTPS redirect configured automatically. See expiry dates at a glance.</p>
+        </div>
+
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">&#128451;</div>
+          <h3>Database Manager</h3>
+          <p>PostgreSQL and MariaDB support. Create databases, users, set privileges. Get connection strings instantly. Connect via built-in SQL terminal. Install engines with one click.</p>
+        </div>
+
+        <div class="feature-card" data-aos>
+          <div class="feature-icon">&#128200;</div>
+          <h3>System Monitor</h3>
+          <p>Live CPU, RAM, and disk usage. See uptime, load average, kernel info. Auto-detect installed software &mdash; Node, PHP, Python, Docker, and 20+ more with version numbers.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -112,12 +136,59 @@
     </div>
   </section>
 
-  <!-- Preview -->
+  <!-- Preview Dashboard -->
   <section class="preview-section">
     <div class="container">
       <div class="section-header">
-        <h2>Dark by default.<br><span>Beautiful by design.</span></h2>
-        <p>No eye-burning white themes. Bpanel looks good at 3 AM.</p>
+        <h2>Full dashboard.<br><span>Everything at a glance.</span></h2>
+        <p>Sessions, domains, SSL, databases, system info &mdash; all accessible from tabbed dashboard.</p>
+      </div>
+      <div class="preview-window">
+        <div class="preview-titlebar">
+          <div class="preview-dots">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+          <span class="preview-url">http://your-vps:9390</span>
+        </div>
+        <div class="preview-body preview-dashboard">
+          <div class="preview-dash-tabs">
+            <span class="preview-dash-tab active">Sessions</span>
+            <span class="preview-dash-tab">Domains</span>
+            <span class="preview-dash-tab">SSL</span>
+            <span class="preview-dash-tab">Databases</span>
+            <span class="preview-dash-tab">System</span>
+          </div>
+          <div class="preview-dash-content">
+            <div class="preview-dash-cards">
+              <div class="preview-dash-card">
+                <div class="preview-card-title">&#128193; My API Project</div>
+                <div class="preview-card-meta">/root/api-project</div>
+                <div class="preview-card-time">Last accessed 2h ago</div>
+              </div>
+              <div class="preview-dash-card">
+                <div class="preview-card-title">&#128193; Frontend App</div>
+                <div class="preview-card-meta">/var/www/frontend</div>
+                <div class="preview-card-time">Last accessed 1d ago</div>
+              </div>
+              <div class="preview-dash-card preview-card-new">
+                <div class="preview-card-plus">+</div>
+                <div class="preview-card-new-text">New Session</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preview Workspace -->
+  <section class="preview-section preview-workspace-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Dark by default.<br><span>Beautiful workspace.</span></h2>
+        <p>File manager, code editor, terminal &mdash; Bpanel looks good at 3 AM.</p>
       </div>
       <div class="preview-window">
         <div class="preview-titlebar">

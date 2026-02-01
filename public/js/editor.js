@@ -2,6 +2,8 @@ const Editor = {
   tabs: [],
   activeTab: null,
   cm: null, // CodeMirror instance or null
+  hljsReady: false,
+  hljsCallbacks: [],
 
   // Language map for highlight.js
   langMap: {
@@ -40,28 +42,52 @@ const Editor = {
   },
 
   loadHighlightJS() {
+    if (this.hljsReady) return;
     if (document.getElementById('hljs-css')) return;
 
+    // Load CSS first
     const link = document.createElement('link');
     link.id = 'hljs-css';
     link.rel = 'stylesheet';
-    link.href = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css';
+    link.href = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css';
     document.head.appendChild(link);
 
+    // Load full highlight.js with common languages
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js';
+    script.src = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js';
     script.onload = () => {
-      // Load common languages
-      const langs = [
-        'javascript', 'typescript', 'python', 'ruby', 'go', 'rust', 'java',
-        'c', 'cpp', 'css', 'scss', 'less', 'xml', 'json', 'yaml', 'markdown',
-        'bash', 'sql', 'php', 'dockerfile', 'nginx', 'ini', 'lua', 'perl',
-        'swift', 'kotlin', 'scala', 'r', 'dart', 'elixir', 'haskell', 'makefile',
-      ];
-      // highlight.js common bundle includes most languages
-      console.log('highlight.js loaded with', Object.keys(window.hljs.listLanguages()).length, 'languages');
+      this.hljsReady = true;
+      console.log('highlight.js loaded');
+      // Re-highlight current tab if open
+      if (this.activeTab) {
+        this.rehighlightCurrent();
+      }
+      // Execute any pending callbacks
+      this.hljsCallbacks.forEach(cb => cb());
+      this.hljsCallbacks = [];
     };
     document.head.appendChild(script);
+  },
+
+  onHljsReady(callback) {
+    if (this.hljsReady && window.hljs) {
+      callback();
+    } else {
+      this.hljsCallbacks.push(callback);
+    }
+  },
+
+  rehighlightCurrent() {
+    const wrapper = document.querySelector('.editor-wrapper');
+    const code = wrapper?.querySelector('code');
+    if (code && window.hljs) {
+      try {
+        window.hljs.highlightElement(code);
+        wrapper.classList.add('hl-active');
+      } catch (e) {
+        console.warn('Highlight failed:', e);
+      }
+    }
   },
 
   openFile(filePath, content) {
@@ -123,15 +149,29 @@ const Editor = {
 
     const updateHighlight = () => {
       const text = textarea.value;
+      // Add trailing newline/space to match textarea sizing
       code.textContent = text + (text.endsWith('\n') ? ' ' : '\n');
       code.className = `language-${lang}`;
-      if (window.hljs) {
+
+      // Remove previous hljs classes to allow re-highlighting
+      code.removeAttribute('data-highlighted');
+
+      if (window.hljs && this.hljsReady) {
         try {
           window.hljs.highlightElement(code);
           wrapper.classList.add('hl-active');
-        } catch {
+        } catch (e) {
+          console.warn('Highlight error:', e);
           wrapper.classList.remove('hl-active');
         }
+      } else {
+        // Queue highlight for when hljs loads
+        wrapper.classList.remove('hl-active');
+        this.onHljsReady(() => {
+          if (this.activeTab === tab) {
+            updateHighlight();
+          }
+        });
       }
     };
 
@@ -140,10 +180,17 @@ const Editor = {
       highlight.scrollLeft = textarea.scrollLeft;
     };
 
+    // Debounce for performance on large files
+    let highlightTimeout;
+    const debouncedHighlight = () => {
+      clearTimeout(highlightTimeout);
+      highlightTimeout = setTimeout(updateHighlight, 50);
+    };
+
     textarea.addEventListener('input', () => {
       tab.content = textarea.value;
       this.updateModifiedState(tab);
-      updateHighlight();
+      debouncedHighlight();
     });
 
     textarea.addEventListener('scroll', syncScroll);
@@ -157,7 +204,7 @@ const Editor = {
         textarea.selectionStart = textarea.selectionEnd = start + 2;
         tab.content = textarea.value;
         this.updateModifiedState(tab);
-        updateHighlight();
+        debouncedHighlight();
       }
     });
 

@@ -1,7 +1,8 @@
 const Editor = {
   tabs: [],
   activeTab: null,
-  cm: null, // CodeMirror instance or null
+  cm: null,
+  hljsLoaded: false,
 
   // Language map for highlight.js
   langMap: {
@@ -34,34 +35,67 @@ const Editor = {
         this.saveActive();
       }
     });
-
-    // Load highlight.js from CDN
     this.loadHighlightJS();
   },
 
   loadHighlightJS() {
-    if (document.getElementById('hljs-css')) return;
+    if (this.hljsLoaded || document.getElementById('hljs-css')) return;
 
+    // CSS
     const link = document.createElement('link');
     link.id = 'hljs-css';
     link.rel = 'stylesheet';
-    link.href = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
     document.head.appendChild(link);
 
+    // JS
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js';
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
     script.onload = () => {
-      // Load common languages
-      const langs = [
-        'javascript', 'typescript', 'python', 'ruby', 'go', 'rust', 'java',
-        'c', 'cpp', 'css', 'scss', 'less', 'xml', 'json', 'yaml', 'markdown',
-        'bash', 'sql', 'php', 'dockerfile', 'nginx', 'ini', 'lua', 'perl',
-        'swift', 'kotlin', 'scala', 'r', 'dart', 'elixir', 'haskell', 'makefile',
-      ];
-      // highlight.js common bundle includes most languages
-      console.log('highlight.js loaded with', Object.keys(window.hljs.listLanguages()).length, 'languages');
+      this.hljsLoaded = true;
+      console.log('[Editor] highlight.js loaded, languages:', window.hljs ? window.hljs.listLanguages().length : 0);
+      // Re-highlight active tab
+      if (this.activeTab) {
+        const wrapper = document.querySelector('.editor-wrapper');
+        const textarea = document.querySelector('.code-editor');
+        const code = wrapper?.querySelector('code');
+        if (wrapper && textarea && code) {
+          this.doHighlight(wrapper, code, textarea.value, this.activeTab.name);
+        }
+      }
     };
+    script.onerror = () => console.error('[Editor] Failed to load highlight.js');
     document.head.appendChild(script);
+  },
+
+  doHighlight(wrapper, codeEl, text, filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const lang = this.langMap[ext] || 'plaintext';
+    const textWithNewline = text + (text.endsWith('\n') ? ' ' : '\n');
+
+    if (window.hljs && this.hljsLoaded) {
+      try {
+        // Use hljs.highlight() for manual control
+        const result = window.hljs.highlight(textWithNewline, {
+          language: lang,
+          ignoreIllegals: true
+        });
+        codeEl.innerHTML = result.value;
+        codeEl.className = `hljs language-${lang}`;
+        wrapper.classList.add('hl-active');
+      } catch (e) {
+        // Fallback: just set text
+        console.warn('[Editor] Highlight failed for', lang, e);
+        codeEl.textContent = textWithNewline;
+        codeEl.className = '';
+        wrapper.classList.remove('hl-active');
+      }
+    } else {
+      // hljs not loaded yet - just set plain text
+      codeEl.textContent = textWithNewline;
+      codeEl.className = '';
+      wrapper.classList.remove('hl-active');
+    }
   },
 
   openFile(filePath, content) {
@@ -117,22 +151,9 @@ const Editor = {
     wrapper.appendChild(textarea);
     container.appendChild(wrapper);
 
-    // Sync highlighting
-    const ext = tab.name.split('.').pop().toLowerCase();
-    const lang = this.langMap[ext] || 'plaintext';
-
+    // Highlighting
     const updateHighlight = () => {
-      const text = textarea.value;
-      code.textContent = text + (text.endsWith('\n') ? ' ' : '\n');
-      code.className = `language-${lang}`;
-      if (window.hljs) {
-        try {
-          window.hljs.highlightElement(code);
-          wrapper.classList.add('hl-active');
-        } catch {
-          wrapper.classList.remove('hl-active');
-        }
-      }
+      this.doHighlight(wrapper, code, textarea.value, tab.name);
     };
 
     const syncScroll = () => {
@@ -140,10 +161,17 @@ const Editor = {
       highlight.scrollLeft = textarea.scrollLeft;
     };
 
+    // Debounce for large files
+    let hlTimeout;
+    const debouncedHighlight = () => {
+      clearTimeout(hlTimeout);
+      hlTimeout = setTimeout(updateHighlight, 30);
+    };
+
     textarea.addEventListener('input', () => {
       tab.content = textarea.value;
       this.updateModifiedState(tab);
-      updateHighlight();
+      debouncedHighlight();
     });
 
     textarea.addEventListener('scroll', syncScroll);
@@ -157,10 +185,11 @@ const Editor = {
         textarea.selectionStart = textarea.selectionEnd = start + 2;
         tab.content = textarea.value;
         this.updateModifiedState(tab);
-        updateHighlight();
+        debouncedHighlight();
       }
     });
 
+    // Initial highlight
     updateHighlight();
     textarea.focus();
   },

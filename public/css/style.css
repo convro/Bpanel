@@ -475,17 +475,26 @@ html, body {
   z-index: 0;
 }
 .editor-highlight code {
+  display: block;
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
   background: transparent !important;
   padding: 0 !important;
+  color: var(--text-primary);
+  white-space: pre;
+  tab-size: 2;
+}
+/* highlight.js syntax colors - ensure they show */
+.editor-highlight code.hljs {
+  background: transparent !important;
+  padding: 0 !important;
 }
 /* When highlight is active, textarea is transparent so highlight shows through */
 .editor-wrapper.hl-active .code-editor {
-  color: transparent;
+  color: transparent !important;
   caret-color: var(--text-primary);
-  background: transparent;
+  background: transparent !important;
 }
 .editor-wrapper .code-editor {
   position: absolute;

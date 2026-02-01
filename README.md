@@ -17,7 +17,7 @@ A web-based VPS management panel built with Node.js. Full file manager, code edi
 On your Ubuntu VPS as root:
 
 ```bash
-bash <(curl -fsSL (https://bpanel.99host.fun/dev/v5/install-bpanel-now))
+bash <(curl -fsSL (https://bpanel.99host.fun/dev/v5/install-bpanel-now)
 ```
 
 Or clone manually:

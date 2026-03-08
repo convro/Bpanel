@@ -1,39 +1,27 @@
 const Editor = {
   tabs: [],
   activeTab: null,
-  cm: null,
   hljsLoaded: false,
 
-  // Language map for highlight.js
   langMap: {
-    js: 'javascript', mjs: 'javascript', cjs: 'javascript', jsx: 'javascript',
-    ts: 'typescript', tsx: 'typescript',
-    py: 'python', rb: 'ruby', go: 'go', rs: 'rust', java: 'java',
-    c: 'c', cpp: 'cpp', h: 'c', hpp: 'cpp',
-    html: 'xml', htm: 'xml', xml: 'xml', svg: 'xml', vue: 'xml', svelte: 'xml',
-    css: 'css', scss: 'scss', less: 'less',
-    json: 'json', yaml: 'yaml', yml: 'yaml', toml: 'ini',
-    md: 'markdown', markdown: 'markdown',
-    sh: 'bash', bash: 'bash', zsh: 'bash',
-    sql: 'sql',
-    php: 'php',
-    dockerfile: 'dockerfile',
-    makefile: 'makefile',
-    nginx: 'nginx',
-    ini: 'ini', conf: 'ini', cfg: 'ini',
-    lua: 'lua', perl: 'perl', pl: 'perl',
-    swift: 'swift', kotlin: 'kotlin', scala: 'scala',
-    r: 'r', R: 'r',
-    dart: 'dart', elixir: 'elixir', haskell: 'haskell',
-    txt: 'plaintext', log: 'plaintext', env: 'bash',
+    js:'javascript', mjs:'javascript', cjs:'javascript', jsx:'javascript',
+    ts:'typescript', tsx:'typescript',
+    py:'python', rb:'ruby', go:'go', rs:'rust', java:'java',
+    c:'c', cpp:'cpp', h:'c', hpp:'cpp',
+    html:'xml', htm:'xml', xml:'xml', svg:'xml', vue:'xml', svelte:'xml',
+    css:'css', scss:'scss', less:'less',
+    json:'json', yaml:'yaml', yml:'yaml', toml:'ini',
+    md:'markdown', markdown:'markdown',
+    sh:'bash', bash:'bash', zsh:'bash',
+    sql:'sql', php:'php', dockerfile:'dockerfile',
+    nginx:'nginx', ini:'ini', conf:'ini', cfg:'ini',
+    lua:'lua', r:'r', dart:'dart',
+    txt:'plaintext', log:'plaintext', env:'bash',
   },
 
   init() {
     document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        this.saveActive();
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); this.saveActive(); }
     });
     this.loadHighlightJS();
   },
@@ -41,70 +29,49 @@ const Editor = {
   loadHighlightJS() {
     if (this.hljsLoaded || document.getElementById('hljs-css')) return;
 
-    // CSS
     const link = document.createElement('link');
-    link.id = 'hljs-css';
-    link.rel = 'stylesheet';
+    link.id = 'hljs-css'; link.rel = 'stylesheet';
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
     document.head.appendChild(link);
 
-    // JS
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
     script.onload = () => {
       this.hljsLoaded = true;
-      console.log('[Editor] highlight.js loaded, languages:', window.hljs ? window.hljs.listLanguages().length : 0);
-      // Re-highlight active tab
       if (this.activeTab) {
-        const wrapper = document.querySelector('.editor-wrapper');
+        const wrapper  = document.querySelector('.editor-wrapper');
         const textarea = document.querySelector('.code-editor');
-        const code = wrapper?.querySelector('code');
-        if (wrapper && textarea && code) {
-          this.doHighlight(wrapper, code, textarea.value, this.activeTab.name);
-        }
+        const code     = wrapper?.querySelector('code');
+        if (wrapper && textarea && code) this.doHighlight(wrapper, code, textarea.value, this.activeTab.name);
       }
     };
-    script.onerror = () => console.error('[Editor] Failed to load highlight.js');
     document.head.appendChild(script);
   },
 
   doHighlight(wrapper, codeEl, text, filename) {
-    const ext = filename.split('.').pop().toLowerCase();
+    const ext  = filename.split('.').pop().toLowerCase();
     const lang = this.langMap[ext] || 'plaintext';
-    const textWithNewline = text + (text.endsWith('\n') ? ' ' : '\n');
+    const content = text + (text.endsWith('\n') ? ' ' : '\n');
 
     if (window.hljs && this.hljsLoaded) {
       try {
-        // Use hljs.highlight() for manual control
-        const result = window.hljs.highlight(textWithNewline, {
-          language: lang,
-          ignoreIllegals: true
-        });
+        const result = window.hljs.highlight(content, { language: lang, ignoreIllegals: true });
         codeEl.innerHTML = result.value;
         codeEl.className = `hljs language-${lang}`;
         wrapper.classList.add('hl-active');
-      } catch (e) {
-        // Fallback: just set text
-        console.warn('[Editor] Highlight failed for', lang, e);
-        codeEl.textContent = textWithNewline;
-        codeEl.className = '';
+      } catch {
+        codeEl.textContent = content;
         wrapper.classList.remove('hl-active');
       }
     } else {
-      // hljs not loaded yet - just set plain text
-      codeEl.textContent = textWithNewline;
-      codeEl.className = '';
+      codeEl.textContent = content;
       wrapper.classList.remove('hl-active');
     }
   },
 
   openFile(filePath, content) {
     let tab = this.tabs.find(t => t.path === filePath);
-    if (tab) {
-      this.activateTab(tab);
-      return;
-    }
-
+    if (tab) { this.activateTab(tab); return; }
     const name = filePath.split('/').pop();
     tab = { path: filePath, name, content, originalContent: content };
     this.tabs.push(tab);
@@ -113,12 +80,10 @@ const Editor = {
   },
 
   activateTab(tab) {
-    // Save current content
     if (this.activeTab) {
-      const textarea = document.querySelector('.code-editor');
-      if (textarea) this.activeTab.content = textarea.value;
+      const ta = document.querySelector('.code-editor');
+      if (ta) this.activeTab.content = ta.value;
     }
-
     this.activeTab = tab;
 
     document.querySelectorAll('.editor-tab').forEach(el => el.classList.remove('active'));
@@ -130,15 +95,12 @@ const Editor = {
     container.style.display = 'flex';
     container.innerHTML = '';
 
-    // Create highlighted editor
-    const wrapper = document.createElement('div');
+    const wrapper   = document.createElement('div');
     wrapper.className = 'editor-wrapper';
-
     const highlight = document.createElement('pre');
     highlight.className = 'editor-highlight';
     const code = document.createElement('code');
     highlight.appendChild(code);
-
     const textarea = document.createElement('textarea');
     textarea.className = 'code-editor';
     textarea.value = tab.content;
@@ -146,70 +108,42 @@ const Editor = {
     textarea.setAttribute('autocapitalize', 'off');
     textarea.setAttribute('autocomplete', 'off');
     textarea.setAttribute('autocorrect', 'off');
-
     wrapper.appendChild(highlight);
     wrapper.appendChild(textarea);
     container.appendChild(wrapper);
 
-    // Highlighting
-    const updateHighlight = () => {
-      this.doHighlight(wrapper, code, textarea.value, tab.name);
-    };
-
-    const syncScroll = () => {
-      highlight.scrollTop = textarea.scrollTop;
-      highlight.scrollLeft = textarea.scrollLeft;
-    };
-
-    // Debounce for large files
     let hlTimeout;
-    const debouncedHighlight = () => {
-      clearTimeout(hlTimeout);
-      hlTimeout = setTimeout(updateHighlight, 30);
-    };
+    const updateHL = () => { clearTimeout(hlTimeout); hlTimeout = setTimeout(() => this.doHighlight(wrapper, code, textarea.value, tab.name), 30); };
+    const syncScroll = () => { highlight.scrollTop = textarea.scrollTop; highlight.scrollLeft = textarea.scrollLeft; };
 
-    textarea.addEventListener('input', () => {
-      tab.content = textarea.value;
-      this.updateModifiedState(tab);
-      debouncedHighlight();
-    });
-
+    textarea.addEventListener('input', () => { tab.content = textarea.value; this.updateModifiedState(tab); updateHL(); });
     textarea.addEventListener('scroll', syncScroll);
-
     textarea.addEventListener('keydown', (e) => {
       if (e.key === 'Tab') {
         e.preventDefault();
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + 2;
+        const s = textarea.selectionStart;
+        textarea.value = textarea.value.substring(0, s) + '  ' + textarea.value.substring(textarea.selectionEnd);
+        textarea.selectionStart = textarea.selectionEnd = s + 2;
         tab.content = textarea.value;
-        this.updateModifiedState(tab);
-        debouncedHighlight();
+        updateHL();
       }
     });
 
-    // Initial highlight
-    updateHighlight();
+    updateHL();
     textarea.focus();
   },
 
   renderTabs() {
     const container = document.getElementById('editor-tabs');
-    container.innerHTML = this.tabs.map(tab => {
-      const ext = tab.name.split('.').pop().toLowerCase();
-      const icon = FileManager.fileIcon(tab.name);
-      return `
-      <div class="editor-tab ${this.activeTab === tab ? 'active' : ''} ${tab.content !== tab.originalContent ? 'modified' : ''}"
-           data-path="${tab.path}">
-        <i data-lucide="${icon}" class="icon-xs"></i>
-        <span class="tab-name">${this.escapeHtml(tab.name)}</span>
+    container.innerHTML = this.tabs.map(tab => `
+      <div class="editor-tab ${this.activeTab === tab ? 'active' : ''} ${tab.content !== tab.originalContent ? 'modified' : ''}" data-path="${tab.path}">
+        <i data-lucide="${FileManager.fileIcon(tab.name)}" class="icon-xs"></i>
+        <span class="tab-name">${eh(tab.name)}</span>
         <span class="tab-close" data-path="${tab.path}"><i data-lucide="x" class="icon-xs"></i></span>
       </div>
-    `;
-    }).join('');
+    `).join('');
 
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (typeof lucide !== 'undefined') lucide.createIcons({ el: container });
 
     container.querySelectorAll('.editor-tab').forEach(el => {
       el.addEventListener('click', (e) => {
@@ -218,21 +152,15 @@ const Editor = {
         if (tab) this.activateTab(tab);
       });
     });
-
     container.querySelectorAll('.tab-close').forEach(el => {
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.closeTab(el.dataset.path);
-      });
+      el.addEventListener('click', (e) => { e.stopPropagation(); this.closeTab(el.dataset.path); });
     });
   },
 
   closeTab(path) {
     const tab = this.tabs.find(t => t.path === path);
     if (!tab) return;
-    if (tab.content !== tab.originalContent) {
-      if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
-    }
+    if (tab.content !== tab.originalContent && !confirm(`"${tab.name}" has unsaved changes. Close?`)) return;
     this.tabs = this.tabs.filter(t => t.path !== path);
     if (this.activeTab === tab) {
       if (this.tabs.length > 0) {
@@ -253,15 +181,14 @@ const Editor = {
 
   async saveActive() {
     if (!this.activeTab) return;
-    const textarea = document.querySelector('.code-editor');
-    if (textarea) this.activeTab.content = textarea.value;
+    const ta = document.querySelector('.code-editor');
+    if (ta) this.activeTab.content = ta.value;
     try {
       await API.post('/api/files/save', { path: this.activeTab.path, content: this.activeTab.content });
       this.activeTab.originalContent = this.activeTab.content;
       this.updateModifiedState(this.activeTab);
-    } catch (err) {
-      alert('Save failed: ' + err.message);
-    }
+      Toast.success('Saved');
+    } catch (err) { Toast.error('Save failed: ' + err.message); }
   },
 
   closeAll() {
@@ -271,6 +198,6 @@ const Editor = {
     document.getElementById('editor-container').style.display = 'none';
     document.getElementById('editor-placeholder').style.display = 'flex';
   },
-
-  escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; },
 };
+
+function eh(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }

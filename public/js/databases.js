@@ -1,235 +1,161 @@
 const Databases = {
-  dbTerm: null,
-  dbSocket: null,
-
   init() {
     document.getElementById('create-db-btn').addEventListener('click', () => this.showModal());
     document.getElementById('cancel-db').addEventListener('click', () => this.hideModal());
-    document.getElementById('confirm-db').addEventListener('click', () => this.createDB());
-    document.getElementById('db-terminal-connect').addEventListener('click', () => this.connectTerminal());
+    document.getElementById('confirm-db').addEventListener('click', () => this.createDb());
+
+    const runBtn = document.getElementById('sql-run-btn');
+    if (runBtn) runBtn.addEventListener('click', () => this.runQuery());
+
+    const sqlTA = document.getElementById('sql-query');
+    if (sqlTA) {
+      sqlTA.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          this.runQuery();
+        }
+      });
+    }
   },
 
-  showModal() { document.getElementById('create-db-modal').style.display = 'flex'; },
-  hideModal() {
-    document.getElementById('create-db-modal').style.display = 'none';
-    document.getElementById('db-name-input').value = '';
-    document.getElementById('db-user-input').value = '';
-    document.getElementById('db-pass-input').value = '';
+  showModal() {
+    document.getElementById('create-db-modal').style.display = 'flex';
+    document.getElementById('db-name-input').focus();
   },
+  hideModal() { document.getElementById('create-db-modal').style.display = 'none'; },
 
   async load() {
-    await Promise.all([this.loadEngineStatus(), this.loadDatabases()]);
+    this.loadEngineStatus();
+    this.loadDatabases();
   },
 
   async loadEngineStatus() {
-    const container = document.getElementById('db-engine-status');
     try {
       const engines = await API.get('/api/databases/status');
-      container.innerHTML = `
-        <div class="engine-status-grid">
-          <div class="engine-card">
-            <div class="engine-card-header">
-              <h4><i data-lucide="database" class="icon-sm"></i> PostgreSQL</h4>
-              ${engines.postgresql.installed
-                ? `<span class="badge ${engines.postgresql.running ? 'badge-success' : 'badge-danger'}">${engines.postgresql.running ? 'Running' : 'Stopped'}</span>`
-                : '<span class="badge badge-muted">Not Installed</span>'}
-            </div>
-            ${engines.postgresql.installed
-              ? `<p style="font-size:12px;color:var(--text-secondary)">${this.esc(engines.postgresql.version)}</p>`
-              : `<button class="btn btn-sm btn-primary install-engine" data-engine="postgresql" style="margin-top:8px"><i data-lucide="download" class="icon-xs"></i> Install PostgreSQL</button>`}
+      const container = document.getElementById('db-engine-status');
+
+      container.innerHTML = Object.entries(engines).map(([key, e]) => `
+        <div class="engine-card">
+          <div class="engine-status-dot ${e.running ? 'running' : ''}"></div>
+          <div class="engine-info">
+            <strong>${key === 'postgresql' ? 'PostgreSQL' : 'MariaDB'}</strong>
+            <small>${e.installed ? (e.running ? 'Running' : 'Stopped') : 'Not installed'}</small>
           </div>
-          <div class="engine-card">
-            <div class="engine-card-header">
-              <h4><i data-lucide="database" class="icon-sm"></i> MariaDB</h4>
-              ${engines.mariadb.installed
-                ? `<span class="badge ${engines.mariadb.running ? 'badge-success' : 'badge-danger'}">${engines.mariadb.running ? 'Running' : 'Stopped'}</span>`
-                : '<span class="badge badge-muted">Not Installed</span>'}
-            </div>
-            ${engines.mariadb.installed
-              ? `<p style="font-size:12px;color:var(--text-secondary)">${this.esc(engines.mariadb.version)}</p>`
-              : `<button class="btn btn-sm btn-primary install-engine" data-engine="mariadb" style="margin-top:8px"><i data-lucide="download" class="icon-xs"></i> Install MariaDB</button>`}
-          </div>
+          ${!e.installed ? `<button class="btn btn-sm install-engine" data-engine="${key}"><i data-lucide="download" class="icon-xs"></i> Install</button>` : ''}
+          ${e.installed && !e.running ? `<button class="btn btn-sm start-engine" data-engine="${key === 'postgresql' ? 'postgresql' : 'mariadb'}"><i data-lucide="play" class="icon-xs"></i> Start</button>` : ''}
         </div>
-      `;
-      if (typeof lucide !== 'undefined') lucide.createIcons();
+      `).join('');
+
+      if (typeof lucide !== 'undefined') lucide.createIcons({ el: container });
 
       container.querySelectorAll('.install-engine').forEach(btn => {
         btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          btn.textContent = 'Installing...';
+          btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
           try {
             await API.post(`/api/databases/install/${btn.dataset.engine}`);
-            alert(`${btn.dataset.engine} installed successfully!`);
+            Toast.success('Database engine installed!');
             this.load();
-          } catch (err) {
-            alert('Install failed: ' + err.message);
-            btn.disabled = false;
-            btn.textContent = 'Install';
-          }
+          } catch (err) { Toast.error(err.message); btn.disabled = false; }
         });
       });
     } catch (err) {
-      container.innerHTML = `<div class="info-box" style="border-color:var(--danger)"><p>Error checking engines: ${err.message}</p></div>`;
+      document.getElementById('db-engine-status').innerHTML =
+        `<div class="info-box" style="border-color:var(--warning)"><p>Failed to check database engines</p></div>`;
     }
   },
 
   async loadDatabases() {
-    const container = document.getElementById('db-list');
-    const termSection = document.getElementById('db-terminal-section');
-    const select = document.getElementById('db-terminal-select');
-
+    const list = document.getElementById('db-list');
+    list.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
     try {
       const databases = await API.get('/api/databases');
-
       if (databases.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No databases created yet.</div>';
-        termSection.style.display = 'none';
+        list.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--text-muted)">No databases yet.</div>';
         return;
       }
-
-      container.innerHTML = databases.map(db => `
+      list.innerHTML = databases.map(db => `
         <div class="db-card">
           <div class="db-info">
             <div class="db-name">
-              <i data-lucide="database" class="icon-sm" style="color:${db.engine === 'postgresql' ? 'var(--accent)' : 'var(--warning)'}"></i>
-              <strong>${this.esc(db.name)}</strong>
-              <span class="badge badge-accent">${db.engine === 'postgresql' ? 'PostgreSQL' : 'MariaDB'}</span>
-            </div>
-            <div class="db-detail">
-              <i data-lucide="server" class="icon-xs"></i>
-              localhost:${db.engine === 'postgresql' ? '5432' : '3306'}
+              <i data-lucide="database" class="icon-sm" style="color:${db.engine === 'postgresql' ? 'var(--accent-2)' : 'var(--warning)'}"></i>
+              <strong>${esc(db.name)}</strong>
+              <span class="badge badge-muted">${esc(db.engine)}</span>
             </div>
           </div>
           <div class="db-actions">
-            <button class="btn btn-sm btn-danger delete-db" data-engine="${db.engine}" data-name="${this.esc(db.name)}"><i data-lucide="trash-2" class="icon-xs"></i></button>
+            <button class="btn btn-sm btn-danger delete-db" data-engine="${esc(db.engine)}" data-name="${esc(db.name)}">
+              <i data-lucide="trash-2" class="icon-xs"></i>
+            </button>
           </div>
         </div>
       `).join('');
 
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-
-      container.querySelectorAll('.delete-db').forEach(btn => {
+      if (typeof lucide !== 'undefined') lucide.createIcons({ el: list });
+      list.querySelectorAll('.delete-db').forEach(btn => {
         btn.addEventListener('click', async () => {
-          if (!confirm(`Delete database "${btn.dataset.name}"? This cannot be undone!`)) return;
+          if (!confirm(`Drop database "${btn.dataset.name}"?`)) return;
           try {
             await API.del(`/api/databases/${btn.dataset.engine}/${btn.dataset.name}`);
-            this.load();
-          } catch (err) { alert(err.message); }
+            Toast.success('Database deleted');
+            this.loadDatabases();
+          } catch (err) { Toast.error(err.message); }
         });
       });
-
-      // Update terminal select
-      termSection.style.display = 'block';
-      select.innerHTML = '<option value="">Select database...</option>' +
-        databases.map(db => `<option value="${db.engine}:${this.esc(db.name)}">${this.esc(db.name)} (${db.engine})</option>`).join('');
     } catch (err) {
-      container.innerHTML = '';
+      list.innerHTML = `<div class="info-box" style="border-color:var(--danger)"><p>${esc(err.message)}</p></div>`;
     }
   },
 
-  async createDB() {
-    const engine = document.getElementById('db-engine-select').value;
-    const dbName = document.getElementById('db-name-input').value.trim();
+  async createDb() {
+    const engine   = document.getElementById('db-engine-select').value;
+    const dbName   = document.getElementById('db-name-input').value.trim();
     const username = document.getElementById('db-user-input').value.trim();
     const password = document.getElementById('db-pass-input').value;
 
-    if (!dbName || !username || !password) return alert('All fields are required');
+    if (!dbName || !username || !password) return Toast.error('All fields required');
 
     const btn = document.getElementById('confirm-db');
-    btn.disabled = true;
-    btn.textContent = 'Creating...';
+    btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Creating...';
 
     try {
       const result = await API.post('/api/databases', { engine, dbName, username, password });
       this.hideModal();
-      this.load();
-
+      Toast.success('Database created!');
       if (result.connection) {
-        alert(`Database created!\n\nConnection string:\n${result.connection.string}\n\nHost: ${result.connection.host}\nPort: ${result.connection.port}\nDatabase: ${result.connection.database}\nUsername: ${result.connection.username}`);
+        Toast.info(`Connection: ${result.connection.string}`, 10000);
+      }
+      document.getElementById('db-name-input').value = '';
+      document.getElementById('db-user-input').value = '';
+      document.getElementById('db-pass-input').value = '';
+      this.loadDatabases();
+    } catch (err) {
+      Toast.error('Failed: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Database';
+    }
+  },
+
+  async runQuery() {
+    const engine   = document.getElementById('sql-engine').value;
+    const database = document.getElementById('sql-database').value.trim();
+    const query    = document.getElementById('sql-query').value.trim();
+    const result   = document.getElementById('sql-result');
+
+    if (!query) return;
+
+    result.innerHTML = '<div class="loading"><div class="spinner"></div> Running...</div>';
+
+    try {
+      const data = await API.post('/api/databases/query', { engine, database: database || null, query });
+      if (data.raw) {
+        result.innerHTML = `<pre>${esc(data.raw)}</pre>`;
+      } else {
+        result.innerHTML = '<pre>Query executed successfully</pre>';
       }
     } catch (err) {
-      alert('Failed: ' + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Create';
+      result.innerHTML = `<div class="error-result">${esc(err.message)}</div>`;
     }
   },
-
-  connectTerminal() {
-    const val = document.getElementById('db-terminal-select').value;
-    if (!val) return alert('Select a database first');
-
-    const [engine, dbName] = val.split(':');
-    const container = document.getElementById('db-terminal-container');
-    container.innerHTML = '';
-
-    const XTerm = window.Terminal;
-    if (!XTerm) {
-      container.innerHTML = '<p style="color:var(--danger);padding:12px">Terminal not available</p>';
-      return;
-    }
-
-    if (this.dbTerm) { this.dbTerm.dispose(); this.dbTerm = null; }
-    if (this.dbSocket) { this.dbSocket.disconnect(); this.dbSocket = null; }
-
-    this.dbTerm = new XTerm({
-      cursorBlink: true,
-      fontSize: 13,
-      fontFamily: "'JetBrains Mono', 'Consolas', monospace",
-      theme: {
-        background: '#0d1117',
-        foreground: '#e6edf3',
-        cursor: '#58a6ff',
-      },
-    });
-
-    let fitAddon = null;
-    if (window.FitAddon && window.FitAddon.FitAddon) {
-      fitAddon = new window.FitAddon.FitAddon();
-      this.dbTerm.loadAddon(fitAddon);
-    }
-
-    this.dbTerm.open(container);
-    if (fitAddon) try { fitAddon.fit(); } catch {}
-
-    this.dbSocket = io('/terminal');
-
-    this.dbSocket.on('connect', () => {
-      if (fitAddon) try { fitAddon.fit(); } catch {}
-      let cols = 80, rows = 24;
-      if (fitAddon) {
-        try {
-          const dims = fitAddon.proposeDimensions();
-          if (dims) { cols = dims.cols; rows = dims.rows; }
-        } catch {}
-      }
-
-      // Spawn a shell session that auto-connects to the DB
-      this.dbSocket.emit('spawn', { sessionId: 'db-terminal', cols, rows });
-
-      // After shell starts, send the connect command
-      setTimeout(() => {
-        let cmd;
-        if (engine === 'postgresql') {
-          cmd = `sudo -u postgres psql ${dbName}`;
-        } else {
-          cmd = `mysql ${dbName}`;
-        }
-        this.dbSocket.emit('data', cmd + '\n');
-      }, 500);
-    });
-
-    this.dbSocket.on('data', (data) => this.dbTerm.write(data));
-    this.dbSocket.on('exit', () => this.dbTerm.write('\r\n\x1b[33m[Session ended]\x1b[0m\r\n'));
-
-    this.dbTerm.onData((data) => {
-      if (this.dbSocket && this.dbSocket.connected) this.dbSocket.emit('data', data);
-    });
-
-    this.dbTerm.onResize(({ cols, rows }) => {
-      if (this.dbSocket && this.dbSocket.connected) this.dbSocket.emit('resize', { cols, rows });
-    });
-  },
-
-  esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; },
 };
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }

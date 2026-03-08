@@ -1,31 +1,36 @@
 const { Router } = require('express');
 const { requireAuth } = require('../middleware/auth');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const router = Router();
 router.use(requireAuth);
+
+function isValidIdentifier(name) {
+  return /^[a-zA-Z0-9_]{1,64}$/.test(name);
+}
+
+function isServiceRunning(name) {
+  const result = spawnSync('systemctl', ['is-active', name], { encoding: 'utf-8', timeout: 5000 });
+  return (result.stdout || '').trim() === 'active';
+}
 
 // Check which engines are installed
 router.get('/status', (req, res) => {
   const engines = {};
 
-  // PostgreSQL
-  try {
-    const ver = execSync('psql --version 2>&1').toString().trim();
-    const running = isServiceRunning('postgresql');
-    engines.postgresql = { installed: true, version: ver, running };
-  } catch {
-    engines.postgresql = { installed: false };
-  }
+  const pgResult = spawnSync('psql', ['--version'], { encoding: 'utf-8', timeout: 5000 });
+  engines.postgresql = {
+    installed: pgResult.status === 0,
+    version: pgResult.status === 0 ? (pgResult.stdout || '').trim() : null,
+    running: isServiceRunning('postgresql'),
+  };
 
-  // MariaDB / MySQL
-  try {
-    const ver = execSync('mysql --version 2>&1').toString().trim();
-    const running = isServiceRunning('mariadb') || isServiceRunning('mysql');
-    engines.mariadb = { installed: true, version: ver, running };
-  } catch {
-    engines.mariadb = { installed: false };
-  }
+  const myResult = spawnSync('mysql', ['--version'], { encoding: 'utf-8', timeout: 5000 });
+  engines.mariadb = {
+    installed: myResult.status === 0,
+    version: myResult.status === 0 ? (myResult.stdout || '').trim() : null,
+    running: isServiceRunning('mariadb') || isServiceRunning('mysql'),
+  };
 
   res.json(engines);
 });
@@ -33,20 +38,29 @@ router.get('/status', (req, res) => {
 // Install engine
 router.post('/install/:engine', (req, res) => {
   const { engine } = req.params;
-  try {
-    if (engine === 'postgresql') {
-      execSync('apt-get update && apt-get install -y postgresql postgresql-contrib', { timeout: 120000 });
-      execSync('systemctl enable postgresql && systemctl start postgresql', { timeout: 15000 });
-    } else if (engine === 'mariadb') {
-      execSync('apt-get update && apt-get install -y mariadb-server mariadb-client', { timeout: 120000 });
-      execSync('systemctl enable mariadb && systemctl start mariadb', { timeout: 15000 });
-    } else {
-      return res.status(400).json({ error: 'Unknown engine' });
-    }
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  let pkg;
+  let enable;
+
+  if (engine === 'postgresql') {
+    pkg = ['postgresql', 'postgresql-contrib'];
+    enable = 'postgresql';
+  } else if (engine === 'mariadb') {
+    pkg = ['mariadb-server', 'mariadb-client'];
+    enable = 'mariadb';
+  } else {
+    return res.status(400).json({ error: 'Unknown engine' });
   }
+
+  const update = spawnSync('apt-get', ['update', '-qq'], { encoding: 'utf-8', timeout: 120000 });
+  if (update.status !== 0) return res.status(500).json({ error: 'apt-get update failed' });
+
+  const install = spawnSync('apt-get', ['install', '-y', ...pkg], { encoding: 'utf-8', timeout: 300000 });
+  if (install.status !== 0) return res.status(500).json({ error: (install.stderr || install.stdout || '').trim() });
+
+  spawnSync('systemctl', ['enable', enable], { timeout: 10000 });
+  spawnSync('systemctl', ['start', enable], { timeout: 15000 });
+
+  res.json({ ok: true });
 });
 
 // List databases
@@ -54,27 +68,26 @@ router.get('/', (req, res) => {
   const databases = [];
 
   // PostgreSQL databases
-  try {
-    const output = execSync("sudo -u postgres psql -t -A -c \"SELECT datname FROM pg_database WHERE datistemplate = false;\" 2>/dev/null", { timeout: 10000 }).toString().trim();
-    if (output) {
-      output.split('\n').forEach(name => {
-        if (name.trim()) databases.push({ name: name.trim(), engine: 'postgresql' });
-      });
-    }
-  } catch {}
+  const pgResult = spawnSync('sudo', ['-u', 'postgres', 'psql', '-t', '-A', '-c',
+    'SELECT datname FROM pg_database WHERE datistemplate = false;'
+  ], { encoding: 'utf-8', timeout: 10000 });
+
+  if (pgResult.status === 0 && pgResult.stdout) {
+    pgResult.stdout.split('\n').forEach(name => {
+      if (name.trim()) databases.push({ name: name.trim(), engine: 'postgresql' });
+    });
+  }
 
   // MariaDB/MySQL databases
-  try {
-    const output = execSync("mysql -N -e \"SHOW DATABASES;\" 2>/dev/null", { timeout: 10000 }).toString().trim();
-    if (output) {
-      const systemDBs = ['information_schema', 'mysql', 'performance_schema', 'sys'];
-      output.split('\n').forEach(name => {
-        if (name.trim() && !systemDBs.includes(name.trim())) {
-          databases.push({ name: name.trim(), engine: 'mariadb' });
-        }
-      });
-    }
-  } catch {}
+  const myResult = spawnSync('mysql', ['-N', '-e', 'SHOW DATABASES;'], { encoding: 'utf-8', timeout: 10000 });
+  if (myResult.status === 0 && myResult.stdout) {
+    const systemDBs = ['information_schema', 'mysql', 'performance_schema', 'sys'];
+    myResult.stdout.split('\n').forEach(name => {
+      if (name.trim() && !systemDBs.includes(name.trim())) {
+        databases.push({ name: name.trim(), engine: 'mariadb' });
+      }
+    });
+  }
 
   res.json(databases);
 });
@@ -85,92 +98,148 @@ router.post('/', (req, res) => {
   if (!engine || !dbName || !username || !password) {
     return res.status(400).json({ error: 'All fields required: engine, dbName, username, password' });
   }
-
-  const safeName = dbName.replace(/[^a-zA-Z0-9_]/g, '');
-  const safeUser = username.replace(/[^a-zA-Z0-9_]/g, '');
+  if (!isValidIdentifier(dbName)) return res.status(400).json({ error: 'Invalid database name (letters, numbers, underscores only)' });
+  if (!isValidIdentifier(username)) return res.status(400).json({ error: 'Invalid username (letters, numbers, underscores only)' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
   try {
     if (engine === 'postgresql') {
-      // Create user and database
-      try {
-        execSync(`sudo -u postgres psql -c "CREATE USER ${safeUser} WITH PASSWORD '${password.replace(/'/g, "''")}'"`, { timeout: 10000 });
-      } catch {} // user might exist
-      execSync(`sudo -u postgres psql -c "CREATE DATABASE ${safeName} OWNER ${safeUser}"`, { timeout: 10000 });
-      execSync(`sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${safeName} TO ${safeUser}"`, { timeout: 10000 });
+      // Use -c flag with properly escaped values via spawnSync (no shell injection)
+      spawnSync('sudo', ['-u', 'postgres', 'psql', '-c',
+        `CREATE USER ${username} WITH PASSWORD '${password.replace(/'/g, "''")}'`
+      ], { timeout: 10000 });
+
+      const createDb = spawnSync('sudo', ['-u', 'postgres', 'psql', '-c',
+        `CREATE DATABASE ${dbName} OWNER ${username}`
+      ], { encoding: 'utf-8', timeout: 10000 });
+
+      if (createDb.status !== 0) {
+        const err = (createDb.stderr || '').trim();
+        if (!err.includes('already exists')) {
+          return res.status(500).json({ error: err });
+        }
+      }
+
+      spawnSync('sudo', ['-u', 'postgres', 'psql', '-c',
+        `GRANT ALL PRIVILEGES ON DATABASE ${dbName} TO ${username}`
+      ], { timeout: 10000 });
 
       res.json({
         ok: true,
         connection: {
-          host: 'localhost',
-          port: 5432,
-          database: safeName,
-          username: safeUser,
-          string: `postgresql://${safeUser}:${password}@localhost:5432/${safeName}`,
+          host: 'localhost', port: 5432,
+          database: dbName, username,
+          string: `postgresql://${username}:****@localhost:5432/${dbName}`,
         },
       });
     } else if (engine === 'mariadb') {
-      execSync(`mysql -e "CREATE DATABASE IF NOT EXISTS \\\`${safeName}\\\`"`, { timeout: 10000 });
-      execSync(`mysql -e "CREATE USER IF NOT EXISTS '${safeUser}'@'localhost' IDENTIFIED BY '${password.replace(/'/g, "\\'")}';"`, { timeout: 10000 });
-      execSync(`mysql -e "GRANT ALL PRIVILEGES ON \\\`${safeName}\\\`.* TO '${safeUser}'@'localhost'; FLUSH PRIVILEGES;"`, { timeout: 10000 });
+      const esc = s => s.replace(/`/g, '').replace(/'/g, "\\'");
+
+      spawnSync('mysql', ['-e', `CREATE DATABASE IF NOT EXISTS \`${esc(dbName)}\``], { timeout: 10000 });
+      spawnSync('mysql', ['-e',
+        `CREATE USER IF NOT EXISTS '${esc(username)}'@'localhost' IDENTIFIED BY '${esc(password)}'`
+      ], { timeout: 10000 });
+
+      const grant = spawnSync('mysql', ['-e',
+        `GRANT ALL PRIVILEGES ON \`${esc(dbName)}\`.* TO '${esc(username)}'@'localhost'; FLUSH PRIVILEGES;`
+      ], { encoding: 'utf-8', timeout: 10000 });
+
+      if (grant.status !== 0) {
+        return res.status(500).json({ error: (grant.stderr || grant.stdout || 'Grant failed').trim() });
+      }
 
       res.json({
         ok: true,
         connection: {
-          host: 'localhost',
-          port: 3306,
-          database: safeName,
-          username: safeUser,
-          string: `mysql://${safeUser}:${password}@localhost:3306/${safeName}`,
+          host: 'localhost', port: 3306,
+          database: dbName, username,
+          string: `mysql://${username}:****@localhost:3306/${dbName}`,
         },
       });
     } else {
       res.status(400).json({ error: 'Unknown engine' });
     }
   } catch (err) {
-    res.status(500).json({ error: err.stderr ? err.stderr.toString() : err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
 // Delete database
 router.delete('/:engine/:name', (req, res) => {
   const { engine, name } = req.params;
-  const safeName = name.replace(/[^a-zA-Z0-9_]/g, '');
+  if (!isValidIdentifier(name)) return res.status(400).json({ error: 'Invalid database name' });
 
-  try {
-    if (engine === 'postgresql') {
-      execSync(`sudo -u postgres psql -c "DROP DATABASE IF EXISTS ${safeName}"`, { timeout: 10000 });
-    } else if (engine === 'mariadb') {
-      execSync(`mysql -e "DROP DATABASE IF EXISTS \\\`${safeName}\\\`"`, { timeout: 10000 });
-    }
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (engine === 'postgresql') {
+    const result = spawnSync('sudo', ['-u', 'postgres', 'psql', '-c',
+      `DROP DATABASE IF EXISTS ${name}`
+    ], { encoding: 'utf-8', timeout: 10000 });
+    if (result.status !== 0) return res.status(500).json({ error: (result.stderr || '').trim() });
+  } else if (engine === 'mariadb') {
+    const result = spawnSync('mysql', ['-e', `DROP DATABASE IF EXISTS \`${name}\``], {
+      encoding: 'utf-8', timeout: 10000
+    });
+    if (result.status !== 0) return res.status(500).json({ error: (result.stderr || '').trim() });
+  } else {
+    return res.status(400).json({ error: 'Unknown engine' });
   }
+
+  res.json({ ok: true });
 });
 
-// List users for an engine
+// List users
 router.get('/users/:engine', (req, res) => {
   const { engine } = req.params;
   const users = [];
 
-  try {
-    if (engine === 'postgresql') {
-      const output = execSync("sudo -u postgres psql -t -A -c \"SELECT usename FROM pg_user WHERE usename != 'postgres';\" 2>/dev/null", { timeout: 10000 }).toString().trim();
-      if (output) output.split('\n').forEach(u => { if (u.trim()) users.push(u.trim()); });
-    } else if (engine === 'mariadb') {
-      const output = execSync("mysql -N -e \"SELECT User FROM mysql.user WHERE User NOT IN ('root','mysql','mariadb','debian-sys-maint');\" 2>/dev/null", { timeout: 10000 }).toString().trim();
-      if (output) output.split('\n').forEach(u => { if (u.trim()) users.push(u.trim()); });
+  if (engine === 'postgresql') {
+    const result = spawnSync('sudo', ['-u', 'postgres', 'psql', '-t', '-A', '-c',
+      `SELECT usename FROM pg_user WHERE usename != 'postgres';`
+    ], { encoding: 'utf-8', timeout: 10000 });
+    if (result.status === 0) {
+      result.stdout.split('\n').forEach(u => { if (u.trim()) users.push(u.trim()); });
     }
-  } catch {}
+  } else if (engine === 'mariadb') {
+    const result = spawnSync('mysql', ['-N', '-e',
+      `SELECT User FROM mysql.user WHERE User NOT IN ('root','mysql','mariadb','debian-sys-maint');`
+    ], { encoding: 'utf-8', timeout: 10000 });
+    if (result.status === 0) {
+      result.stdout.split('\n').forEach(u => { if (u.trim()) users.push(u.trim()); });
+    }
+  }
 
   res.json(users);
 });
 
-function isServiceRunning(name) {
-  try {
-    const status = execSync(`systemctl is-active ${name} 2>/dev/null`).toString().trim();
-    return status === 'active';
-  } catch { return false; }
+// Run SQL query (basic - for trusted admin use)
+router.post('/query', (req, res) => {
+  const { engine, database, query } = req.body;
+  if (!engine || !query) return res.status(400).json({ error: 'engine and query required' });
+
+  // Limit query size
+  if (query.length > 10000) return res.status(400).json({ error: 'Query too long' });
+
+  if (engine === 'postgresql') {
+    const args = ['-t', '-A', '--csv', '-c', query];
+    if (database && isValidIdentifier(database)) args.unshift('-d', database);
+    const result = spawnSync('sudo', ['-u', 'postgres', 'psql', ...args], {
+      encoding: 'utf-8', timeout: 30000
+    });
+    if (result.status !== 0) return res.status(400).json({ error: (result.stderr || result.stdout || '').trim() });
+    const rows = parseCSV(result.stdout || '');
+    res.json({ ok: true, rows, raw: result.stdout });
+  } else if (engine === 'mariadb') {
+    const args = ['-t', '-e', query];
+    if (database && isValidIdentifier(database)) args.push(database);
+    const result = spawnSync('mysql', args, { encoding: 'utf-8', timeout: 30000 });
+    if (result.status !== 0) return res.status(400).json({ error: (result.stderr || result.stdout || '').trim() });
+    res.json({ ok: true, rows: [], raw: result.stdout });
+  } else {
+    res.status(400).json({ error: 'Unknown engine' });
+  }
+});
+
+function parseCSV(text) {
+  return text.trim().split('\n').filter(Boolean).map(line => line.split(','));
 }
 
 module.exports = router;

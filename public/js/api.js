@@ -1,2 +1,36 @@
-function a(){const m=['application/json','128836ycLrLs','POST','auth','18966860sEMdse','json','451490fkOZiB','1611cOLeqs','stringify','status','7039010JtGxEY','456650KIbwNa','3EVmCHm','Request\x20failed','24UpzBJb','same-origin','761257ZJidcQ','error','request','28856okGRGm','2JHXhkf'];a=function(){return m;};return a();}(function(c,d){const i=b,e=c();while(!![]){try{const f=-parseInt(i(0x16b))/0x1*(-parseInt(i(0x162))/0x2)+parseInt(i(0x163))/0x3*(parseInt(i(0x158))/0x4)+-parseInt(i(0x15d))/0x5*(-parseInt(i(0x165))/0x6)+-parseInt(i(0x167))/0x7+-parseInt(i(0x16a))/0x8*(-parseInt(i(0x15e))/0x9)+parseInt(i(0x161))/0xa+-parseInt(i(0x15b))/0xb;if(f===d)break;else e['push'](e['shift']());}catch(g){e['push'](e['shift']());}}}(a,0x59802));function b(c,d){c=c-0x158;const e=a();let f=e[c];return f;}const API={async 'request'(c,d,e){const j=b,f={'method':c,'headers':{'Content-Type':j(0x16c)},'credentials':j(0x166)};if(e)f['body']=JSON[j(0x15f)](e);const g=await fetch(d,f),h=await g[j(0x15c)]();if(!g['ok']){g[j(0x160)]===0x191&&App['showView'](j(0x15a));throw new Error(h[j(0x168)]||j(0x164));}return h;},'get'(c){return this['request']('GET',c);},'post'(c,d){const k=b;return this['request'](k(0x159),c,d);},'put'(c,d){const l=b;return this[l(0x169)]('PUT',c,d);},'del'(c){return this['request']('DELETE',c);}};
+// Bpanel API client
+const API = {
+  async request(method, url, data) {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+    };
+    if (data) opts.body = JSON.stringify(data);
 
+    const res = await fetch(url, opts);
+    const json = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 401 && typeof App !== 'undefined') App.showView('auth');
+      throw new Error(json.error || 'Request failed');
+    }
+    return json;
+  },
+
+  get(url)           { return this.request('GET',    url); },
+  post(url, data)    { return this.request('POST',   url, data); },
+  put(url, data)     { return this.request('PUT',    url, data); },
+  del(url)           { return this.request('DELETE', url); },
+
+  async upload(url, formData) {
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Upload failed');
+    return json;
+  },
+};

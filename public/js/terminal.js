@@ -7,33 +7,16 @@ const BTerminal = {
   init() {
     document.getElementById('toggle-terminal').addEventListener('click', () => this.toggle());
     document.getElementById('close-terminal').addEventListener('click', () => this.hide());
-
-    window.addEventListener('resize', () => {
-      if (this.visible && this.fitAddon) {
-        this.fit();
-      }
-    });
+    window.addEventListener('resize', () => { if (this.visible) this.fit(); });
   },
 
-  toggle() {
-    if (this.visible) {
-      this.hide();
-    } else {
-      this.show();
-    }
-  },
+  toggle() { this.visible ? this.hide() : this.show(); },
 
   show() {
     this.visible = true;
-    const area = document.getElementById('terminal-area');
-    const resizeH = document.getElementById('resize-handle-h');
-    area.style.display = 'flex';
-    resizeH.style.display = 'block';
-
-    if (!this.term) {
-      this.createTerminal();
-    }
-
+    document.getElementById('terminal-area').style.display = 'flex';
+    document.getElementById('resize-handle-h').style.display = 'block';
+    if (!this.term) this.createTerminal();
     setTimeout(() => this.fit(), 50);
   },
 
@@ -47,43 +30,30 @@ const BTerminal = {
     const container = document.getElementById('terminal-container');
     container.innerHTML = '';
 
-    // xterm.js UMD exposes window.Terminal
     const XTerm = window.Terminal;
     if (!XTerm) {
-      console.error('xterm.js not loaded');
-      container.innerHTML = '<p style="color:#f85149;padding:12px">Terminal failed to load. Check CDN connectivity.</p>';
+      container.innerHTML = '<p style="color:var(--danger);padding:12px">Terminal failed to load. Check CDN connectivity.</p>';
       return;
     }
 
     this.term = new XTerm({
       cursorBlink: true,
-      fontSize: 14,
+      fontSize: 13,
       fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
       theme: {
-        background: '#0d1117',
-        foreground: '#e6edf3',
-        cursor: '#58a6ff',
-        selectionBackground: 'rgba(88, 166, 255, 0.3)',
-        black: '#484f58',
-        red: '#f85149',
-        green: '#3fb950',
-        yellow: '#d29922',
-        blue: '#58a6ff',
-        magenta: '#bc8cff',
-        cyan: '#76e3ea',
-        white: '#e6edf3',
-        brightBlack: '#6e7681',
-        brightRed: '#ffa198',
-        brightGreen: '#56d364',
-        brightYellow: '#e3b341',
-        brightBlue: '#79c0ff',
-        brightMagenta: '#d2a8ff',
-        brightCyan: '#b3f0ff',
-        brightWhite: '#ffffff',
+        background:          '#09090b',
+        foreground:          '#fafafa',
+        cursor:              '#6366f1',
+        selectionBackground: 'rgba(99,102,241,0.3)',
+        black:   '#3f3f46', red:     '#ef4444', green:  '#22c55e', yellow:  '#f59e0b',
+        blue:    '#6366f1', magenta: '#a855f7', cyan:   '#06b6d4', white:   '#fafafa',
+        brightBlack:   '#71717a', brightRed:   '#fca5a5', brightGreen: '#86efac',
+        brightYellow:  '#fde68a', brightBlue:  '#818cf8', brightMagenta: '#d8b4fe',
+        brightCyan:    '#67e8f9', brightWhite: '#ffffff',
       },
     });
 
-    if (window.FitAddon && window.FitAddon.FitAddon) {
+    if (window.FitAddon?.FitAddon) {
       this.fitAddon = new window.FitAddon.FitAddon();
       this.term.loadAddon(this.fitAddon);
     }
@@ -93,9 +63,7 @@ const BTerminal = {
   },
 
   connect() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
+    if (this.socket) this.socket.disconnect();
 
     this.socket = io('/terminal');
 
@@ -103,59 +71,25 @@ const BTerminal = {
       this.fit();
       let cols = 80, rows = 24;
       if (this.fitAddon) {
-        try {
-          const dims = this.fitAddon.proposeDimensions();
-          if (dims) { cols = dims.cols; rows = dims.rows; }
-        } catch {}
+        try { const d = this.fitAddon.proposeDimensions(); if (d) { cols = d.cols; rows = d.rows; } } catch {}
       }
-      this.socket.emit('spawn', {
-        sessionId: App.currentSessionId,
-        cols,
-        rows,
-      });
+      this.socket.emit('spawn', { sessionId: App.currentSessionId, cols, rows });
     });
 
-    this.socket.on('data', (data) => {
-      this.term.write(data);
-    });
+    this.socket.on('data',  (data) => this.term.write(data));
+    this.socket.on('exit',  ()     => this.term.write('\r\n\x1b[33m[Process exited]\x1b[0m\r\n'));
+    this.socket.on('connect_error', (err) => this.term.write(`\r\n\x1b[31m[Connection error: ${err.message}]\x1b[0m\r\n`));
 
-    this.socket.on('exit', () => {
-      this.term.write('\r\n\x1b[33m[Process exited]\x1b[0m\r\n');
-    });
-
-    this.socket.on('connect_error', (err) => {
-      this.term.write(`\r\n\x1b[31m[Connection error: ${err.message}]\x1b[0m\r\n`);
-    });
-
-    this.term.onData((data) => {
-      if (this.socket && this.socket.connected) {
-        this.socket.emit('data', data);
-      }
-    });
-
-    this.term.onResize(({ cols, rows }) => {
-      if (this.socket && this.socket.connected) {
-        this.socket.emit('resize', { cols, rows });
-      }
-    });
+    this.term.onData((data) => { if (this.socket?.connected) this.socket.emit('data', data); });
+    this.term.onResize(({ cols, rows }) => { if (this.socket?.connected) this.socket.emit('resize', { cols, rows }); });
   },
 
-  fit() {
-    if (this.fitAddon) {
-      try { this.fitAddon.fit(); } catch {}
-    }
-  },
+  fit() { try { this.fitAddon?.fit(); } catch {} },
 
   destroy() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-    if (this.term) {
-      this.term.dispose();
-      this.term = null;
-    }
-    this.fitAddon = null;
+    this.socket?.disconnect();
+    this.term?.dispose();
+    this.socket = this.term = this.fitAddon = null;
     this.visible = false;
   },
 };

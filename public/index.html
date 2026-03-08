@@ -10,318 +10,544 @@
 </head>
 <body>
   <div id="app">
+
     <!-- Auth View -->
     <div id="auth-view" class="view">
       <div class="auth-container">
-        <div class="auth-logo">
-          <h1>B<span>panel</span></h1>
-          <p class="tagline">something fucking refreshing</p>
+        <div class="auth-card">
+          <div class="auth-logo">
+            <div class="auth-logo-icon">B</div>
+            <div>
+              <h1>Bpanel</h1>
+              <p>something fucking refreshing</p>
+            </div>
+          </div>
+          <form id="auth-form" class="auth-form">
+            <h2 id="auth-title">Sign in</h2>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="auth-username" placeholder="Enter username" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="auth-password" placeholder="Enter password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" id="auth-submit" class="btn btn-primary btn-full">Sign in</button>
+            <p id="auth-error" class="error-text"></p>
+            <p id="auth-toggle" class="auth-toggle"></p>
+          </form>
         </div>
-        <form id="auth-form" class="auth-form">
-          <h2 id="auth-title">Login</h2>
-          <div class="form-group">
-            <input type="text" id="auth-username" placeholder="Username" autocomplete="username" required>
-          </div>
-          <div class="form-group">
-            <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" required>
-          </div>
-          <button type="submit" id="auth-submit" class="btn btn-primary">Login</button>
-          <p id="auth-error" class="error-text"></p>
-          <p id="auth-toggle" class="auth-toggle"></p>
-        </form>
       </div>
     </div>
 
-    <!-- Main Dashboard View (after login) -->
+    <!-- Dashboard View -->
     <div id="dashboard-view" class="view" style="display:none">
-      <header class="top-bar">
-        <div class="top-bar-left">
-          <h1 class="logo-sm">B<span>panel</span></h1>
+      <!-- Sidebar -->
+      <aside class="sidebar-nav" id="sidebar-nav">
+        <div class="sidebar-logo">
+          <span class="sidebar-logo-icon">B</span>
+          <span class="sidebar-logo-text">panel</span>
         </div>
-        <div class="top-bar-center">
-          <button class="btn btn-sm dash-tab active" data-tab="sessions"><i data-lucide="layout-grid" class="icon-sm"></i> Sessions</button>
-          <button class="btn btn-sm dash-tab" data-tab="domains"><i data-lucide="globe" class="icon-sm"></i> Domains</button>
-          <button class="btn btn-sm dash-tab" data-tab="ssl"><i data-lucide="shield-check" class="icon-sm"></i> SSL</button>
-          <button class="btn btn-sm dash-tab" data-tab="databases"><i data-lucide="database" class="icon-sm"></i> Databases</button>
-          <button class="btn btn-sm dash-tab" data-tab="system"><i data-lucide="monitor" class="icon-sm"></i> System</button>
+        <nav class="sidebar-menu">
+          <button class="sidebar-item active" data-tab="sessions">
+            <i data-lucide="layout-grid" class="sidebar-icon"></i>
+            <span>Sessions</span>
+          </button>
+          <button class="sidebar-item" data-tab="domains">
+            <i data-lucide="globe" class="sidebar-icon"></i>
+            <span>Domains</span>
+          </button>
+          <button class="sidebar-item" data-tab="ssl">
+            <i data-lucide="shield-check" class="sidebar-icon"></i>
+            <span>SSL</span>
+          </button>
+          <button class="sidebar-item" data-tab="databases">
+            <i data-lucide="database" class="sidebar-icon"></i>
+            <span>Databases</span>
+          </button>
+          <button class="sidebar-item" data-tab="processes">
+            <i data-lucide="cpu" class="sidebar-icon"></i>
+            <span>Processes</span>
+          </button>
+          <button class="sidebar-item" data-tab="logs">
+            <i data-lucide="scroll-text" class="sidebar-icon"></i>
+            <span>Logs</span>
+          </button>
+          <div class="sidebar-divider"></div>
+          <button class="sidebar-item" data-tab="system">
+            <i data-lucide="monitor" class="sidebar-icon"></i>
+            <span>System</span>
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <span id="user-display" class="sidebar-user"></span>
+          <button id="logout-btn" class="sidebar-logout" title="Logout">
+            <i data-lucide="log-out" class="sidebar-icon"></i>
+          </button>
         </div>
-        <div class="top-bar-right">
-          <span id="user-display"></span>
-          <button id="logout-btn" class="btn btn-sm"><i data-lucide="log-out" class="icon-sm"></i> Logout</button>
-        </div>
-      </header>
+      </aside>
 
-      <!-- Sessions Tab -->
-      <div class="dash-content active" id="dash-sessions">
-        <div class="sessions-container">
-          <div class="sessions-header">
-            <h2><i data-lucide="layout-grid" class="icon-md"></i> Sessions</h2>
-            <button id="new-session-btn" class="btn btn-primary"><i data-lucide="plus" class="icon-sm"></i> New Session</button>
-          </div>
-          <div id="sessions-list" class="sessions-list"></div>
-        </div>
-
-        <!-- New Session Modal -->
-        <div id="new-session-modal" class="modal" style="display:none">
-          <div class="modal-content">
-            <h3>New Session</h3>
-            <div class="form-group">
-              <label>Session Name</label>
-              <input type="text" id="session-name" placeholder="My Project">
-            </div>
-            <div class="form-group">
-              <label>Working Directory</label>
-              <input type="text" id="session-dir" placeholder="/root/myproject" value="/root">
-            </div>
-            <div class="modal-actions">
-              <button id="cancel-session" class="btn">Cancel</button>
-              <button id="create-session" class="btn btn-primary">Create</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Domains Tab -->
-      <div class="dash-content" id="dash-domains" style="display:none">
-        <div class="panel-page">
-          <div class="panel-page-header">
-            <div>
-              <h2><i data-lucide="globe" class="icon-md"></i> Domains</h2>
-              <p class="text-muted">Connect your domains to this server. Point your domain's A record to your server IP, then add it here.</p>
-            </div>
-            <button class="btn btn-primary" id="add-domain-btn"><i data-lucide="plus" class="icon-sm"></i> Add Domain</button>
-          </div>
-
-          <div class="info-box">
-            <h4><i data-lucide="info" class="icon-sm"></i> How to connect a domain</h4>
-            <ol>
-              <li>Go to your domain registrar (Cloudflare, Namecheap, GoDaddy, etc.)</li>
-              <li>Find DNS settings for your domain</li>
-              <li>Add an <strong>A record</strong> pointing to your server IP: <code id="server-ip-display">loading...</code></li>
-              <li>Wait for DNS propagation (usually 5-30 min, max 48h)</li>
-              <li>Come back here and click "Add Domain"</li>
-              <li>Optionally add SSL certificate in the SSL tab</li>
-            </ol>
-          </div>
-
-          <div id="domains-list" class="domains-list"></div>
-
-          <!-- Add Domain Modal -->
-          <div id="add-domain-modal" class="modal" style="display:none">
-            <div class="modal-content">
-              <h3><i data-lucide="globe" class="icon-sm"></i> Add Domain</h3>
-              <div class="form-group">
-                <label>Domain Name</label>
-                <input type="text" id="domain-name-input" placeholder="example.com">
-              </div>
-              <div class="form-group">
-                <label>Type</label>
-                <select id="domain-type-select">
-                  <option value="static">Static Site (HTML/PHP)</option>
-                  <option value="proxy">Reverse Proxy (App port)</option>
-                </select>
-              </div>
-              <div class="form-group" id="domain-root-group">
-                <label>Web Root Directory</label>
-                <input type="text" id="domain-root-input" placeholder="/var/www/example.com">
-              </div>
-              <div class="form-group" id="domain-port-group" style="display:none">
-                <label>Application Port</label>
-                <input type="text" id="domain-port-input" placeholder="3000">
-              </div>
-              <div class="modal-actions">
-                <button class="btn" id="cancel-domain">Cancel</button>
-                <button class="btn btn-primary" id="confirm-domain">Add Domain</button>
-              </div>
-            </div>
+      <!-- Main content area -->
+      <main class="dash-main">
+        <!-- Command palette trigger -->
+        <div class="dash-topbar">
+          <button class="cmd-palette-trigger" id="cmd-palette-btn">
+            <i data-lucide="search" class="icon-sm"></i>
+            <span>Quick search...</span>
+            <kbd>⌘K</kbd>
+          </button>
+          <div class="topbar-right">
+            <span id="server-ip-topbar" class="server-ip-badge"></span>
           </div>
         </div>
-      </div>
 
-      <!-- SSL Tab -->
-      <div class="dash-content" id="dash-ssl" style="display:none">
-        <div class="panel-page">
-          <div class="panel-page-header">
-            <div>
-              <h2><i data-lucide="shield-check" class="icon-md"></i> SSL Certificates</h2>
-              <p class="text-muted">Manage SSL certificates with Let's Encrypt (Certbot). Free HTTPS for your domains.</p>
+        <!-- Tab panels -->
+        <div class="dash-panels">
+
+          <!-- Sessions -->
+          <div class="dash-panel active" id="panel-sessions">
+            <div class="panel-header">
+              <div>
+                <h2>Sessions</h2>
+                <p class="panel-desc">Open a session to start editing files and using the terminal</p>
+              </div>
+              <button id="new-session-btn" class="btn btn-primary">
+                <i data-lucide="plus" class="icon-sm"></i> New Session
+              </button>
             </div>
-            <button class="btn btn-primary" id="issue-ssl-btn"><i data-lucide="plus" class="icon-sm"></i> Issue Certificate</button>
-          </div>
+            <div id="sessions-list" class="sessions-grid"></div>
 
-          <div class="info-box">
-            <h4><i data-lucide="info" class="icon-sm"></i> Requirements</h4>
-            <ul>
-              <li>Domain must be pointed to this server (A record)</li>
-              <li>Nginx must be installed and the domain must be added in the Domains tab</li>
-              <li>Port 80 must be open (for HTTP validation)</li>
-              <li>Certbot will be installed automatically if needed</li>
-            </ul>
-          </div>
-
-          <div id="ssl-status" class="ssl-status"></div>
-          <div id="ssl-list" class="ssl-list"></div>
-
-          <!-- Issue SSL Modal -->
-          <div id="issue-ssl-modal" class="modal" style="display:none">
-            <div class="modal-content">
-              <h3><i data-lucide="shield-check" class="icon-sm"></i> Issue SSL Certificate</h3>
-              <div class="form-group">
-                <label>Domain</label>
-                <input type="text" id="ssl-domain-input" placeholder="example.com">
-              </div>
-              <div class="form-group">
-                <label>Email (optional, for renewal notices)</label>
-                <input type="email" id="ssl-email-input" placeholder="you@example.com">
-              </div>
-              <div class="modal-actions">
-                <button class="btn" id="cancel-ssl">Cancel</button>
-                <button class="btn btn-primary" id="confirm-ssl">Issue Certificate</button>
+            <!-- New Session Modal -->
+            <div id="new-session-modal" class="modal" style="display:none">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h3>New Session</h3>
+                  <button class="modal-close" data-close="new-session-modal"><i data-lucide="x" class="icon-sm"></i></button>
+                </div>
+                <div class="form-group">
+                  <label>Session Name</label>
+                  <input type="text" id="session-name" placeholder="My Project">
+                </div>
+                <div class="form-group">
+                  <label>Working Directory</label>
+                  <input type="text" id="session-dir" placeholder="/root/myproject" value="/root">
+                </div>
+                <div class="modal-actions">
+                  <button class="btn" id="cancel-session">Cancel</button>
+                  <button class="btn btn-primary" id="create-session">Create Session</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Databases Tab -->
-      <div class="dash-content" id="dash-databases" style="display:none">
-        <div class="panel-page">
-          <div class="panel-page-header">
-            <div>
-              <h2><i data-lucide="database" class="icon-md"></i> Databases</h2>
-              <p class="text-muted">Create, configure, and manage PostgreSQL & MariaDB databases.</p>
+          <!-- Domains -->
+          <div class="dash-panel" id="panel-domains" style="display:none">
+            <div class="panel-header">
+              <div>
+                <h2>Domains</h2>
+                <p class="panel-desc">Connect domains via Nginx. Point your A record to <span id="server-ip-display" class="ip-badge">loading...</span></p>
+              </div>
+              <button class="btn btn-primary" id="add-domain-btn">
+                <i data-lucide="plus" class="icon-sm"></i> Add Domain
+              </button>
             </div>
-            <button class="btn btn-primary" id="create-db-btn"><i data-lucide="plus" class="icon-sm"></i> Create Database</button>
-          </div>
 
-          <div id="db-engine-status"></div>
-
-          <div class="info-box">
-            <h4><i data-lucide="info" class="icon-sm"></i> Quick Setup Guide</h4>
-            <ol>
-              <li>Install your preferred database engine using the buttons below (if not installed)</li>
-              <li>Create a database with a user and password</li>
-              <li>Use the connection details in your application config</li>
-              <li>Use the built-in terminal to run SQL queries or import schemas</li>
-            </ol>
-          </div>
-
-          <div id="db-list" class="db-list"></div>
-
-          <!-- DB Terminal -->
-          <div id="db-terminal-section" style="display:none;margin-top:24px">
-            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><i data-lucide="terminal" class="icon-sm"></i> Database Terminal</h3>
-            <div style="display:flex;gap:8px;margin-bottom:12px">
-              <select id="db-terminal-select" class="form-group" style="margin:0;padding:6px 12px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius);font-size:13px">
-                <option value="">Select database...</option>
-              </select>
-              <button class="btn btn-sm" id="db-terminal-connect"><i data-lucide="play" class="icon-xs"></i> Connect</button>
+            <div class="info-box" id="domain-info-box">
+              <div class="info-box-header">
+                <i data-lucide="info" class="icon-sm"></i>
+                <strong>How to connect a domain</strong>
+              </div>
+              <ol>
+                <li>Go to your domain registrar (Cloudflare, Namecheap, etc.)</li>
+                <li>Add an <strong>A record</strong> pointing to your server IP</li>
+                <li>Wait for DNS propagation (5–30 min usually)</li>
+                <li>Click "Add Domain" and optionally issue SSL below</li>
+              </ol>
             </div>
-            <div id="db-terminal-container" style="height:300px;background:#000;border-radius:var(--radius);overflow:hidden"></div>
+
+            <div id="domains-list" class="card-list"></div>
+
+            <!-- Add Domain Modal -->
+            <div id="add-domain-modal" class="modal" style="display:none">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h3><i data-lucide="globe" class="icon-sm"></i> Add Domain</h3>
+                  <button class="modal-close" data-close="add-domain-modal"><i data-lucide="x" class="icon-sm"></i></button>
+                </div>
+                <div class="form-group">
+                  <label>Domain Name</label>
+                  <input type="text" id="domain-name-input" placeholder="example.com">
+                </div>
+                <div class="form-group">
+                  <label>Type</label>
+                  <select id="domain-type-select">
+                    <option value="static">Static Site (HTML/PHP)</option>
+                    <option value="proxy">Reverse Proxy (App port)</option>
+                  </select>
+                </div>
+                <div class="form-group" id="domain-root-group">
+                  <label>Web Root Directory</label>
+                  <input type="text" id="domain-root-input" placeholder="/var/www/example.com">
+                </div>
+                <div class="form-group" id="domain-port-group" style="display:none">
+                  <label>Application Port</label>
+                  <input type="number" id="domain-port-input" placeholder="3000" min="1" max="65535">
+                </div>
+                <div class="modal-actions">
+                  <button class="btn" id="cancel-domain">Cancel</button>
+                  <button class="btn btn-primary" id="confirm-domain">Add Domain</button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- Create DB Modal -->
-          <div id="create-db-modal" class="modal" style="display:none">
-            <div class="modal-content">
-              <h3><i data-lucide="database" class="icon-sm"></i> Create Database</h3>
-              <div class="form-group">
-                <label>Engine</label>
-                <select id="db-engine-select">
+          <!-- SSL -->
+          <div class="dash-panel" id="panel-ssl" style="display:none">
+            <div class="panel-header">
+              <div>
+                <h2>SSL Certificates</h2>
+                <p class="panel-desc">Free HTTPS via Let's Encrypt (Certbot)</p>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-sm" id="renew-ssl-btn">
+                  <i data-lucide="refresh-cw" class="icon-sm"></i> Renew All
+                </button>
+                <button class="btn btn-primary" id="issue-ssl-btn">
+                  <i data-lucide="plus" class="icon-sm"></i> Issue Certificate
+                </button>
+              </div>
+            </div>
+            <div id="ssl-status" class="ssl-status"></div>
+            <div id="ssl-list" class="card-list"></div>
+
+            <!-- Issue SSL Modal -->
+            <div id="issue-ssl-modal" class="modal" style="display:none">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h3><i data-lucide="shield-check" class="icon-sm"></i> Issue SSL Certificate</h3>
+                  <button class="modal-close" data-close="issue-ssl-modal"><i data-lucide="x" class="icon-sm"></i></button>
+                </div>
+                <div class="form-group">
+                  <label>Domain</label>
+                  <input type="text" id="ssl-domain-input" placeholder="example.com">
+                </div>
+                <div class="form-group">
+                  <label>Email <span style="color:var(--text-muted)">(optional, for renewal notices)</span></label>
+                  <input type="email" id="ssl-email-input" placeholder="you@example.com">
+                </div>
+                <div class="modal-actions">
+                  <button class="btn" id="cancel-ssl">Cancel</button>
+                  <button class="btn btn-primary" id="confirm-ssl">Issue Certificate</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Databases -->
+          <div class="dash-panel" id="panel-databases" style="display:none">
+            <div class="panel-header">
+              <div>
+                <h2>Databases</h2>
+                <p class="panel-desc">Manage PostgreSQL & MariaDB databases</p>
+              </div>
+              <button class="btn btn-primary" id="create-db-btn">
+                <i data-lucide="plus" class="icon-sm"></i> Create Database
+              </button>
+            </div>
+
+            <div id="db-engine-status" class="db-engines"></div>
+            <div id="db-list" class="card-list"></div>
+
+            <!-- SQL Query panel -->
+            <div class="section-header" style="margin-top:32px">
+              <h3>SQL Query</h3>
+              <p class="panel-desc">Run queries directly against your databases</p>
+            </div>
+            <div class="sql-panel">
+              <div class="sql-toolbar">
+                <select id="sql-engine" class="form-select-sm">
                   <option value="postgresql">PostgreSQL</option>
                   <option value="mariadb">MariaDB</option>
                 </select>
+                <input type="text" id="sql-database" class="form-input-sm" placeholder="Database name (optional)">
+                <button class="btn btn-sm btn-primary" id="sql-run-btn">
+                  <i data-lucide="play" class="icon-xs"></i> Run
+                </button>
+                <span style="font-size:11px;color:var(--text-muted)">Ctrl+Enter</span>
               </div>
-              <div class="form-group">
-                <label>Database Name</label>
-                <input type="text" id="db-name-input" placeholder="myapp_db">
-              </div>
-              <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="db-user-input" placeholder="myapp_user">
-              </div>
-              <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="db-pass-input" placeholder="Strong password">
-              </div>
-              <div class="modal-actions">
-                <button class="btn" id="cancel-db">Cancel</button>
-                <button class="btn btn-primary" id="confirm-db">Create</button>
-              </div>
+              <textarea id="sql-query" class="sql-textarea" placeholder="SELECT * FROM users LIMIT 10;" spellcheck="false"></textarea>
+              <div id="sql-result" class="sql-result"></div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- System Tab -->
-      <div class="dash-content" id="dash-system" style="display:none">
-        <div class="panel-page">
-          <div class="panel-page-header">
-            <div>
-              <h2><i data-lucide="monitor" class="icon-md"></i> System Information</h2>
-              <p class="text-muted">Server details, installed software, and resource usage.</p>
+            <!-- Create DB Modal -->
+            <div id="create-db-modal" class="modal" style="display:none">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h3><i data-lucide="database" class="icon-sm"></i> Create Database</h3>
+                  <button class="modal-close" data-close="create-db-modal"><i data-lucide="x" class="icon-sm"></i></button>
+                </div>
+                <div class="form-group">
+                  <label>Engine</label>
+                  <select id="db-engine-select">
+                    <option value="postgresql">PostgreSQL</option>
+                    <option value="mariadb">MariaDB</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Database Name</label>
+                  <input type="text" id="db-name-input" placeholder="myapp_db">
+                </div>
+                <div class="form-group">
+                  <label>Username</label>
+                  <input type="text" id="db-user-input" placeholder="myapp_user">
+                </div>
+                <div class="form-group">
+                  <label>Password</label>
+                  <input type="password" id="db-pass-input" placeholder="Min 8 characters">
+                </div>
+                <div class="modal-actions">
+                  <button class="btn" id="cancel-db">Cancel</button>
+                  <button class="btn btn-primary" id="confirm-db">Create Database</button>
+                </div>
+              </div>
             </div>
-            <button class="btn btn-sm" id="refresh-system-btn"><i data-lucide="refresh-cw" class="icon-sm"></i> Refresh</button>
           </div>
-          <div id="system-info-content"></div>
-        </div>
-      </div>
+
+          <!-- Processes -->
+          <div class="dash-panel" id="panel-processes" style="display:none">
+            <div class="panel-header">
+              <div>
+                <h2>Processes</h2>
+                <p class="panel-desc">Running processes and PM2 services</p>
+              </div>
+              <button class="btn btn-sm" id="refresh-processes-btn">
+                <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
+              </button>
+            </div>
+            <div id="pm2-section" style="display:none">
+              <div class="section-header">
+                <h3>PM2 Services</h3>
+              </div>
+              <div id="pm2-list" class="card-list"></div>
+            </div>
+            <div class="section-header">
+              <h3>System Processes</h3>
+              <input type="text" id="process-filter" class="form-input-sm" placeholder="Filter by name..." style="width:200px">
+            </div>
+            <div id="process-table-wrapper" class="table-wrapper">
+              <table id="process-table" class="data-table">
+                <thead>
+                  <tr>
+                    <th>PID</th>
+                    <th>User</th>
+                    <th>CPU%</th>
+                    <th>MEM%</th>
+                    <th>Status</th>
+                    <th>Command</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="process-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Logs -->
+          <div class="dash-panel" id="panel-logs" style="display:none">
+            <div class="panel-header">
+              <div>
+                <h2>Logs</h2>
+                <p class="panel-desc">Real-time log streaming from system services</p>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="log-source-select" class="form-select-sm">
+                  <option value="">Select source...</option>
+                </select>
+                <button class="btn btn-primary btn-sm" id="log-stream-btn">
+                  <i data-lucide="play" class="icon-sm"></i> Stream
+                </button>
+                <button class="btn btn-sm" id="log-clear-btn">
+                  <i data-lucide="trash-2" class="icon-sm"></i> Clear
+                </button>
+              </div>
+            </div>
+            <div class="log-toolbar">
+              <input type="text" id="log-filter-input" class="form-input-sm" placeholder="Filter logs..." style="flex:1">
+              <label class="checkbox-label">
+                <input type="checkbox" id="log-autoscroll" checked> Auto-scroll
+              </label>
+            </div>
+            <div id="log-output" class="log-output"></div>
+          </div>
+
+          <!-- System -->
+          <div class="dash-panel" id="panel-system" style="display:none">
+            <div class="panel-header">
+              <div>
+                <h2>System</h2>
+                <p class="panel-desc">Server resources and installed software</p>
+              </div>
+              <button class="btn btn-sm" id="refresh-system-btn">
+                <i data-lucide="refresh-cw" class="icon-sm"></i> Refresh
+              </button>
+            </div>
+            <div id="system-info-content"></div>
+          </div>
+
+        </div><!-- /dash-panels -->
+      </main>
     </div>
 
-    <!-- Workspace View (inside a session) -->
+    <!-- Workspace View -->
     <div id="workspace-view" class="view" style="display:none">
-      <header class="top-bar workspace-bar">
-        <div class="top-bar-left">
-          <button id="back-to-sessions" class="btn btn-sm"><i data-lucide="arrow-left" class="icon-sm"></i> Dashboard</button>
-          <h1 class="logo-sm">B<span>panel</span></h1>
-          <span id="session-title" class="session-title"></span>
+      <header class="ws-topbar">
+        <div class="ws-topbar-left">
+          <button id="back-to-sessions" class="btn btn-sm btn-ghost">
+            <i data-lucide="arrow-left" class="icon-sm"></i> Dashboard
+          </button>
+          <div class="ws-logo">B<span>panel</span></div>
+          <span id="session-title" class="ws-session-name"></span>
         </div>
-        <div class="top-bar-right">
-          <button id="toggle-terminal" class="btn btn-sm"><i data-lucide="terminal" class="icon-sm"></i> Terminal</button>
-          <button id="ws-logout-btn" class="btn btn-sm"><i data-lucide="log-out" class="icon-sm"></i></button>
+        <div class="ws-topbar-center">
+          <button class="ws-tab-btn active" data-ws-tab="editor">
+            <i data-lucide="file-code" class="icon-xs"></i> Editor
+          </button>
+          <button class="ws-tab-btn" data-ws-tab="git">
+            <i data-lucide="git-branch" class="icon-xs"></i> Git
+          </button>
+        </div>
+        <div class="ws-topbar-right">
+          <button id="toggle-terminal" class="btn btn-sm">
+            <i data-lucide="terminal" class="icon-sm"></i> Terminal
+          </button>
+          <button id="ws-logout-btn" class="btn btn-sm btn-ghost" title="Logout">
+            <i data-lucide="log-out" class="icon-sm"></i>
+          </button>
         </div>
       </header>
 
-      <div class="workspace" id="tab-files">
-        <div class="sidebar" id="sidebar">
-          <div class="sidebar-header">
-            <button id="go-up-btn" class="btn btn-icon" title="Go up"><i data-lucide="arrow-up" class="icon-sm"></i></button>
+      <div class="workspace">
+        <!-- File sidebar -->
+        <div class="ws-sidebar" id="sidebar">
+          <div class="ws-sidebar-header">
+            <button id="go-up-btn" class="btn btn-icon" title="Go up">
+              <i data-lucide="arrow-up" class="icon-sm"></i>
+            </button>
             <span id="current-path" class="current-path">/</span>
-            <div class="sidebar-actions">
-              <button id="refresh-btn" class="btn btn-icon" title="Refresh"><i data-lucide="refresh-cw" class="icon-sm"></i></button>
-              <button id="new-file-btn" class="btn btn-icon" title="New file"><i data-lucide="file-plus" class="icon-sm"></i></button>
-              <button id="new-folder-btn" class="btn btn-icon" title="New folder"><i data-lucide="folder-plus" class="icon-sm"></i></button>
+            <div class="ws-sidebar-actions">
+              <button id="upload-btn" class="btn btn-icon" title="Upload files">
+                <i data-lucide="upload" class="icon-sm"></i>
+              </button>
+              <button id="refresh-btn" class="btn btn-icon" title="Refresh">
+                <i data-lucide="refresh-cw" class="icon-sm"></i>
+              </button>
+              <button id="new-file-btn" class="btn btn-icon" title="New file">
+                <i data-lucide="file-plus" class="icon-sm"></i>
+              </button>
+              <button id="new-folder-btn" class="btn btn-icon" title="New folder">
+                <i data-lucide="folder-plus" class="icon-sm"></i>
+              </button>
             </div>
           </div>
           <div class="path-breadcrumbs" id="path-breadcrumbs"></div>
+
+          <!-- Upload drop zone -->
+          <div id="upload-dropzone" class="upload-dropzone" style="display:none">
+            <i data-lucide="upload-cloud" style="width:32px;height:32px;opacity:0.5"></i>
+            <p>Drop files here to upload</p>
+            <input type="file" id="upload-file-input" multiple style="display:none">
+          </div>
+
           <div id="file-tree" class="file-tree"></div>
         </div>
+
         <div class="resize-handle" id="resize-handle"></div>
-        <div class="main-area">
-          <div class="editor-area" id="editor-area">
-            <div class="editor-tabs" id="editor-tabs"></div>
+
+        <!-- Main editor/git area -->
+        <div class="ws-main">
+
+          <!-- Editor panel -->
+          <div id="ws-editor-panel" class="ws-panel active">
+            <div class="editor-tabs-bar" id="editor-tabs"></div>
             <div class="editor-placeholder" id="editor-placeholder">
-              <i data-lucide="file-code" style="width:48px;height:48px;opacity:0.2;margin-bottom:12px"></i>
-              <p>Select a file to edit</p>
+              <i data-lucide="file-code" style="width:48px;height:48px;opacity:0.15;margin-bottom:16px"></i>
+              <p style="color:var(--text-muted)">Select a file to edit</p>
+              <p style="color:var(--text-muted);font-size:12px;margin-top:4px">Or drag & drop files to upload</p>
             </div>
-            <div id="editor-container" style="display:none"></div>
+            <div id="editor-container" style="display:none;flex:1;overflow:hidden"></div>
           </div>
+
+          <!-- Git panel -->
+          <div id="ws-git-panel" class="ws-panel" style="display:none">
+            <div class="git-panel">
+              <div class="git-header">
+                <div id="git-branch-info" class="git-branch"></div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-sm" id="git-refresh-btn"><i data-lucide="refresh-cw" class="icon-xs"></i></button>
+                  <button class="btn btn-sm" id="git-pull-btn"><i data-lucide="download" class="icon-xs"></i> Pull</button>
+                  <button class="btn btn-sm btn-primary" id="git-push-btn"><i data-lucide="upload" class="icon-xs"></i> Push</button>
+                </div>
+              </div>
+
+              <div class="git-commit-row">
+                <input type="text" id="git-commit-msg" class="form-input-sm" placeholder="Commit message..." style="flex:1">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="git-add-all" checked> Stage all
+                </label>
+                <button class="btn btn-sm btn-primary" id="git-commit-btn"><i data-lucide="check" class="icon-xs"></i> Commit</button>
+              </div>
+
+              <div id="git-status-list" class="git-status-list">
+                <div class="git-placeholder">Checking git status...</div>
+              </div>
+
+              <div class="git-log-section">
+                <h4>Recent Commits</h4>
+                <div id="git-log-list" class="git-log"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resize handle -->
           <div class="resize-handle-h" id="resize-handle-h" style="display:none"></div>
+
+          <!-- Terminal area -->
           <div class="terminal-area" id="terminal-area" style="display:none">
             <div class="terminal-header">
-              <span><i data-lucide="terminal" class="icon-sm"></i> Terminal</span>
+              <span><i data-lucide="terminal" class="icon-xs"></i> Terminal</span>
               <button id="close-terminal" class="btn btn-icon"><i data-lucide="x" class="icon-sm"></i></button>
             </div>
             <div id="terminal-container"></div>
           </div>
         </div>
       </div>
+
+      <!-- File upload input (hidden) -->
+      <input type="file" id="ws-upload-input" multiple style="display:none">
     </div>
-  </div>
+
+    <!-- Command Palette -->
+    <div id="cmd-palette-overlay" class="cmd-overlay" style="display:none">
+      <div class="cmd-palette">
+        <div class="cmd-input-wrap">
+          <i data-lucide="search" class="icon-sm" style="color:var(--text-muted)"></i>
+          <input type="text" id="cmd-input" placeholder="Search sessions, navigate, run commands..." autocomplete="off">
+          <kbd class="cmd-esc">Esc</kbd>
+        </div>
+        <div id="cmd-results" class="cmd-results"></div>
+      </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="toast-container"></div>
+
+  </div><!-- #app -->
 
   <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.4/dist/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/toast.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/sessions.js"></script>
   <script src="/js/filemanager.js"></script>
@@ -331,6 +557,9 @@
   <script src="/js/ssl.js"></script>
   <script src="/js/systeminfo.js"></script>
   <script src="/js/databases.js"></script>
+  <script src="/js/processes.js"></script>
+  <script src="/js/logs.js"></script>
+  <script src="/js/git.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>
